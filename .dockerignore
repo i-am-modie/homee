@@ -1,0 +1,15 @@
+# dependencies
+**/node_modules
+
+# build files
+**/build
+**/dist
+
+# coverage reports
+**/coverage
+
+# git files
+**/.git
+
+# vscode settings
+**/.vscode
