@@ -19,7 +19,7 @@ module.exports = {
   plugins: ["@typescript-eslint", "@typescript-eslint/tslint"],
   settings: {
     'import/parsers': {
-      '@typescript-eslint/parser': ['.ts', '.tsx'],
+      '@typescript-eslint/parser': ['.ts'],
     },
     'import/resolver': {
       node: {},
@@ -189,7 +189,7 @@ module.exports = {
     "import/order": [
       "error",
       {
-        groups: [["builtin", "internal"], "external"],
+        groups: [["builtin", "external"], "internal"],
         "newlines-between": "always",
       },
     ],

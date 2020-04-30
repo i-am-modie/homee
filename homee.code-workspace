@@ -1,0 +1,19 @@
+{
+    "folders": [
+        {
+            "name": "root",
+            "path": "."
+        },
+        {
+            "name": "client",
+            "path": "client-raspi"
+        }
+    ],
+    "settings": {
+        "editor.formatOnSave": true,
+        "typescript.tsdk": "root/node_modules/typescript/lib",
+        "cSpell.words": [
+            "Yeelight"
+        ]
+    }
+}

@@ -9,9 +9,9 @@
     "format:check": "prettier --list-different src/**/*.ts",
     "build": "tsc",
     "build:watch": "tsc -w",
-    "lint:list": "eslint */**/*.ts --fix",
-    "lint": "eslint */**/*.ts --fix",
-    "start:prod": "nodemon src/index.ts"
+    "lint:list": " eslint --ext .ts src",
+    "lint": " eslint --ext .ts src",
+    "start": "nodemon src/index.ts"
   },
   "keywords": [],
   "author": "",

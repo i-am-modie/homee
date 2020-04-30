@@ -1,5 +1,5 @@
-import { parse } from "dotenv";
 import fs from "fs";
+import { parse } from "dotenv";
 
 export default function loadDotEnv(path: string) {
   try {

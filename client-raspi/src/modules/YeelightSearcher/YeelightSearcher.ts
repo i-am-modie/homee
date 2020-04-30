@@ -1,11 +1,13 @@
 import { Client, SsdpHeaders } from "node-ssdp";
+
 import { decodeBase64 } from "@server/modules/helpers/decodeBase64";
 
 export default class YeelightSearcher {
   client: Client;
   bulbs: string[] = [];
   constructor() {
-    this.client = new Client({ ssdpPort: 1982 });
+    const config = { ssdpPort: 1982, sourcePort: 1982 };
+    this.client = new Client({ ...config });
 
     this.client.on("response", data => this.addIfNotExists(data));
 
