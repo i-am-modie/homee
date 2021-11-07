@@ -1,10 +1,25 @@
 // eslint-disable-next-line import/order
-import "./configure";
 
 import "reflect-metadata";
+import dotenv from "dotenv";
+import { Logger } from "./modules/Logger/Logger.js";
+import { Yeelight } from "./modules/Yeelight/types/Yeelight.js";
+import { YeelightRepository } from "./modules/Yeelight/Yeelight.repository.js";
+import YeelightSearcher from "./modules/YeelightSearcher/YeelightSearcher.js";
+import { yeelightSearcherEvents } from "./modules/YeelightSearcher/yeelightSearcherEvents.js";
 
-import YeelightSearcher from "@server/modules/YeelightSearcher/YeelightSearcher";
+dotenv.config();
 
-const temp = new YeelightSearcher();
-console.log("listening")
-setInterval(temp.search, 1000 * 30);
+const logger = new Logger();
+const searcher = new YeelightSearcher(logger);
+const yeelightRepository = new YeelightRepository(process.env.LOW_DB_PATH);
+
+console.log("listening");
+setInterval(() => {
+  searcher.emit(yeelightSearcherEvents.getBulbs);
+}, 1000 * 180);
+
+searcher.on(yeelightSearcherEvents.newBulbData, (data: Yeelight) => {
+  logger.log(data);
+  yeelightRepository.upsertBulb(data);
+});

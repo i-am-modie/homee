@@ -1,4 +1,4 @@
-export enum YeelightModels {
+export enum YeelightModel {
   COLOR = "COLOR",
   MONO = "MONO",
 }

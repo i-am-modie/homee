@@ -1,28 +1,40 @@
-import { Client, SsdpHeaders } from "node-ssdp";
+import { EventEmitter } from "events";
+import pkg from "node-ssdp";
 
-import { decodeBase64 } from "@server/modules/helpers/decodeBase64";
+import { Logger } from "../Logger/Logger.js";
+import {
+  FoundBulbResponseDTO,
+  mapFoundBulbResponseDTOToYeelightModel,
+} from "./dto/FoundBulb.response.js";
+import { yeelightSearcherEvents } from "./yeelightSearcherEvents.js";
+const { Client } = pkg;
 
-export default class YeelightSearcher {
-  client: Client;
+export default class YeelightSearcher extends EventEmitter {
+  client: pkg.Client;
   bulbs: string[] = [];
-  constructor() {
+  constructor(private readonly _logger: Logger) {
+    super();
     const config = { ssdpPort: 1982, sourcePort: 1982 };
     this.client = new Client({ ...config });
 
-    this.client.on("response", data => this.addIfNotExists(data));
+    this.client.on("response", (data) =>
+      this.emit(
+        yeelightSearcherEvents.newBulbData,
+        mapFoundBulbResponseDTOToYeelightModel(
+          data as unknown as FoundBulbResponseDTO,
+        ),
+      ),
+    );
+
+    this.on(yeelightSearcherEvents.getBulbs, () => {
+      this.search();
+    });
 
     this.search();
   }
 
-  addIfNotExists(data: SsdpHeaders) {
-    if (!data.ID) {
-      return;
-    }
-    if (!this.bulbs.some(it => it === data.ID)) {
-      const parsedData = { ...data, NAME: decodeBase64(data.NAME as string) };
-      this.bulbs.push(data.ID.toString());
-      console.log(parsedData);
-    }
-  }
-  search = () => this.client.search("wifi_bulb");
+  search = () => {
+    this._logger.log("Searching bulbs");
+    this.client.search("wifi_bulb");
+  };
 }
