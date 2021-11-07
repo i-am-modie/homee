@@ -1,3 +1,4 @@
+import { URL } from "url";
 import { decodeBase64 } from "../../helpers/decodeBase64.js";
 import { Yeelight } from "../../YeelightRepository/types/Yeelight.js";
 import { YeelightMode } from "../../YeelightRepository/YeelightMode.enum.js";
@@ -50,16 +51,23 @@ export interface FoundBulbResponseDTO {
 
 export const mapFoundBulbResponseDTOToYeelightModel = (
   dto: FoundBulbResponseDTO,
-): Yeelight => ({
-  colorMode: dto.COLOR_MODE as unknown as YeelightMode,
-  ct: Number(dto.COLOR_MODE),
-  hue: Number(dto.HUE),
-  id: dto.ID,
-  location: dto.LOCATION,
-  model: dto.MODEL as unknown as YeelightModel,
-  rgb: dto.RGB,
-  sat: Number(dto.SAT),
-  name: dto.NAME && decodeBase64(dto.NAME),
-  available_actions:
-    (dto.SUPPORT?.trim()?.length && dto.SUPPORT.trim().split(" ")) || [],
-});
+): Yeelight => {
+  const available_actions =
+    (dto.SUPPORT?.trim()?.length && dto.SUPPORT.trim().split(" ")) || [];
+
+  const { hostname, port } = new URL(dto.LOCATION);
+
+  return {
+    colorMode: dto.COLOR_MODE as unknown as YeelightMode,
+    ct: Number(dto.COLOR_MODE),
+    hue: Number(dto.HUE),
+    id: dto.ID,
+    location: hostname,
+    port: Number(port),
+    model: dto.MODEL as unknown as YeelightModel,
+    rgb: dto.RGB,
+    sat: Number(dto.SAT),
+    name: dto.NAME && decodeBase64(dto.NAME),
+    available_actions,
+  };
+};
