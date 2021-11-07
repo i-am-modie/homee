@@ -3,8 +3,8 @@
 import "reflect-metadata";
 import dotenv from "dotenv";
 import { Logger } from "./modules/Logger/Logger.js";
-import { Yeelight } from "./modules/Yeelight/types/Yeelight.js";
-import { YeelightRepository } from "./modules/Yeelight/Yeelight.repository.js";
+import { Yeelight } from "./modules/YeelightRepository/types/Yeelight.js";
+import { YeelightRepository } from "./modules/YeelightRepository/Yeelight.repository.js";
 import YeelightSearcher from "./modules/YeelightSearcher/YeelightSearcher.js";
 import { yeelightSearcherEvents } from "./modules/YeelightSearcher/yeelightSearcherEvents.js";
 
@@ -12,7 +12,10 @@ dotenv.config();
 
 const logger = new Logger();
 const searcher = new YeelightSearcher(logger);
-const yeelightRepository = new YeelightRepository(process.env.LOW_DB_PATH);
+const yeelightRepository = new YeelightRepository(
+  logger,
+  process.env.LOW_DB_PATH,
+);
 
 console.log("listening");
 setInterval(() => {

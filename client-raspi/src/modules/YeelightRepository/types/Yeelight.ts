@@ -7,6 +7,7 @@ export interface Yeelight {
   location: string;
   model: YeelightModel;
   colorMode: YeelightMode;
+  available_actions: string[];
   rgb: string;
   hue: number;
   sat: number;

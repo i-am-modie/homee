@@ -1,7 +1,7 @@
 import { decodeBase64 } from "../../helpers/decodeBase64.js";
-import { Yeelight } from "../../Yeelight/types/Yeelight.js";
-import { YeelightMode } from "../../Yeelight/YeelightMode.enum.js";
-import { YeelightModel } from "../../Yeelight/YeelightModel.enum.js";
+import { Yeelight } from "../../YeelightRepository/types/Yeelight.js";
+import { YeelightMode } from "../../YeelightRepository/YeelightMode.enum.js";
+import { YeelightModel } from "../../YeelightRepository/YeelightModel.enum.js";
 
 export enum FoundBulbResponseModel {
   COLOR = "color",
@@ -60,4 +60,6 @@ export const mapFoundBulbResponseDTOToYeelightModel = (
   rgb: dto.RGB,
   sat: Number(dto.SAT),
   name: dto.NAME && decodeBase64(dto.NAME),
+  available_actions:
+    (dto.SUPPORT?.trim()?.length && dto.SUPPORT.trim().split(" ")) || [],
 });
