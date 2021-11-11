@@ -18,16 +18,16 @@ const yeelightRepository = new YeelightRepository(
   logger,
   process.env.LOW_DB_PATH,
 );
+logger.log("App started");
+
 const yeelightConnectionService: YeelightConnectionService =
   new YeelightConnectionServiceImplementation(logger);
 
-console.log("listening");
 setInterval(() => {
   searcher.emit(yeelightSearcherEvents.getBulbs);
 }, 1000 * 180);
 
 searcher.on(yeelightSearcherEvents.newBulbData, (data: Yeelight) => {
-  logger.log(data);
   yeelightRepository.upsertBulb(data);
 });
 
@@ -36,18 +36,16 @@ setTimeout(() => {
 
   setInterval(async () => {
     try {
-        await yeelightConnectionService.executeCommands(
-          yeelightRepository.getBulbById("0x0000000007e7a51b"),
-          [
-            {
-              command: "get_prop",
-              params: ["power", "bright"],
-            },
-          ],
-        ).then(console.log)
-
+      await yeelightConnectionService
+        .executeCommands(yeelightRepository.getBulbById("0x0000000007e7a51b"), [
+          {
+            command: "get_prop",
+            params: ["power", "bright"],
+          },
+        ])
+        .then((data) => logger.log(data));
     } catch (err) {
-      console.log(err);
+      logger.error(err);
     }
   }, 2000);
 }, 5000);

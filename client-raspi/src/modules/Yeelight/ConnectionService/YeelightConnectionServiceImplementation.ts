@@ -1,4 +1,5 @@
 import net from "net";
+import { inspect } from "util";
 import { generateRandomId } from "../../helpers/generateRandomId.js";
 import { Logger } from "../../Logger/Logger.js";
 import { Yeelight } from "../Yeelight.js";
@@ -39,7 +40,9 @@ export class YeelightConnectionServiceImplementation
     commands: YeelightConnectionServiceCommand[],
   ): Promise<YeelightConnectionServiceCommandResponse[]> {
     const actionLog = this._logger.beginAction(
-      `Executing ${commands.length} on ${target.id}`,
+      `Executing ${commands.length} on ${target.id} - ${
+        target.name ?? "unnamed"
+      }`,
     );
 
     if (!commands?.length) {
@@ -62,7 +65,6 @@ export class YeelightConnectionServiceImplementation
       for (const command of commandsWithIds) {
         responses.push(await this.executeCommand(connection, command));
       }
-      console.log(responses);
 
       return this.mapCommandsAndResponsesToResults(commandsWithIds, responses);
       this._logger.endAction(actionLog);
@@ -100,8 +102,10 @@ export class YeelightConnectionServiceImplementation
     };
 
     const rawCommandString = JSON.stringify(rawCommandObject) + suffix;
-    this._logger.log(`Executing command ${rawCommandObject}`);
-    this._logger.log(`Executing command ${rawCommandString}`);
+    const commandLogAction = this._logger.beginAction(
+      `Executing command ${inspect(rawCommandObject)}`,
+    );
+
     return new Promise<YeelightRequestSuccessResponse>((resolve, reject) => {
       connection.write(rawCommandString, (err) => {
         if (err) {
@@ -110,12 +114,25 @@ export class YeelightConnectionServiceImplementation
       });
       connection.on("data", (data) => {
         try {
-          const response: YeelightRequestResponse = JSON.parse(data.toString());
+          const responseString: string = data.toString();
+          const response: YeelightRequestResponse = JSON.parse(responseString);
           if (response.error) {
+            this._logger.error(
+              `Command ${
+                command.id
+              } failed to execute with error ${response.error.join(" ")}`,
+            );
             return reject(response);
           }
+          this._logger.endAction(
+            commandLogAction,
+            `[${response.result.join(",")}]`,
+          );
           return resolve(response);
         } catch (err) {
+          this._logger.error(
+            `Command ${command.id} failed to execute with error ${err}`,
+          );
           return reject(err);
         }
       });

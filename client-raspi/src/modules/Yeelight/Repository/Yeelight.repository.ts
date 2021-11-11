@@ -36,7 +36,6 @@ export class YeelightRepository {
   }
 
   public async upsertBulb(yeelight: Yeelight) {
-    this._logger.log(`upserting bulb ${yeelight.id}`)
     this._db.data!.lights[yeelight.id] = yeelight;
     this._db.write();
   }

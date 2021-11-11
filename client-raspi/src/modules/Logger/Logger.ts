@@ -27,11 +27,13 @@ export class Logger {
     };
   }
 
-  public endAction(actionInfo: LoggerActionInProgressInfo) {
+  public endAction(actionInfo: LoggerActionInProgressInfo, result?: string) {
     const executionTimeInMs =
       getCurrentDate().valueOf() - actionInfo.beginTime.valueOf();
     console.log(
-      `${this.getPrefix()} - Ended action in ${executionTimeInMs}ms - ${actionInfo.actionInfo}`,
+      `${this.getPrefix()} - Ended action in ${executionTimeInMs}ms - ${
+        actionInfo.actionInfo
+      } ${result ? `with result: ${result}` : ""}`,
     );
   }
 
