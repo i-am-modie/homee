@@ -1,7 +1,7 @@
 import { EventEmitter } from "events";
 import pkg from "node-ssdp";
 
-import { Logger } from "../Logger/Logger.js";
+import { Logger } from "../../Logger/Logger.js";
 import {
   FoundBulbResponseDTO,
   mapFoundBulbResponseDTOToYeelightModel,

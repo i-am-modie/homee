@@ -9,7 +9,7 @@
     "format": "prettier --write src/**/*.ts",
     "format:check": "prettier --list-different src/**/*.ts",
     "build": "tsc",
-    "build:watch": "tsc -w",
+    "build:watch": "tsc-watch --onSuccess \"nodemon dist/index.js\"",
     "lint:list": " eslint --ext .ts src",
     "lint": " eslint --ext .ts src",
     "start": "nodemon -V --exec ts-node src/index.ts"
@@ -33,6 +33,7 @@
     "express": "^4.17.1",
     "json-comments": "^0.2.1",
     "lowdb": "^3.0.0",
+    "nanoid": "^3.1.30",
     "node-ssdp": "^4.0.1",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.4.0",
@@ -55,6 +56,7 @@
     "prettier": "^2.4.1",
     "ts-jest": "^27.0.7",
     "ts-node-dev": "^1.1.8",
+    "tsc-watch": "^4.5.0",
     "tslint": "^6.1.3"
   }
 }

@@ -3,11 +3,12 @@
 import "reflect-metadata";
 import dotenv from "dotenv";
 import { Logger } from "./modules/Logger/Logger.js";
-import { Yeelight } from "./modules/YeelightRepository/types/Yeelight.js";
-import { YeelightRepository } from "./modules/YeelightRepository/Yeelight.repository.js";
-import YeelightSearcher from "./modules/YeelightSearcher/YeelightSearcher.js";
-import { yeelightSearcherEvents } from "./modules/YeelightSearcher/yeelightSearcherEvents.js";
-import { YeelightConnectionService } from "./modules/YeelightService/YeelightConnectionService.js";
+import { Yeelight } from "./modules/Yeelight/Yeelight.js";
+import { YeelightRepository } from "./modules/Yeelight/Repository/Yeelight.repository.js";
+import YeelightSearcher from "./modules/Yeelight/Searcher/YeelightSearcher.js";
+import { yeelightSearcherEvents } from "./modules/Yeelight/Searcher/yeelightSearcherEvents.js";
+import { YeelightConnectionServiceImplementation } from "./modules/Yeelight/ConnectionService/YeelightConnectionServiceImplementation.js";
+import { YeelightConnectionService } from "./modules/Yeelight/ConnectionService/YeelightConnectionService";
 
 dotenv.config();
 
@@ -17,7 +18,8 @@ const yeelightRepository = new YeelightRepository(
   logger,
   process.env.LOW_DB_PATH,
 );
-const yeelightConnectionService = new YeelightConnectionService(logger);
+const yeelightConnectionService: YeelightConnectionService =
+  new YeelightConnectionServiceImplementation(logger);
 
 console.log("listening");
 setInterval(() => {
@@ -28,6 +30,27 @@ searcher.on(yeelightSearcherEvents.newBulbData, (data: Yeelight) => {
   logger.log(data);
   yeelightRepository.upsertBulb(data);
 });
+
+setTimeout(() => {
+  let onoff = true;
+
+  setInterval(async () => {
+    try {
+        await yeelightConnectionService.executeCommands(
+          yeelightRepository.getBulbById("0x0000000007e7a51b"),
+          [
+            {
+              command: "get_prop",
+              params: ["power", "bright"],
+            },
+          ],
+        ).then(console.log)
+
+    } catch (err) {
+      console.log(err);
+    }
+  }, 2000);
+}, 5000);
 
 // setTimeout(() => {
 //   let onoff = true;

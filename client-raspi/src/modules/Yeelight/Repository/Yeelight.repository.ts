@@ -1,8 +1,8 @@
 import path, { join } from "path";
 import { Low, JSONFile } from "lowdb";
-import { Yeelight } from "./types/Yeelight.js";
+import { Yeelight } from "../Yeelight.js";
 import { fileURLToPath } from "url";
-import { Logger } from "../Logger/Logger.js";
+import { Logger } from "../../Logger/Logger.js";
 
 const __dirname = path.dirname(
   join(fileURLToPath(import.meta.url), "../../.."),
