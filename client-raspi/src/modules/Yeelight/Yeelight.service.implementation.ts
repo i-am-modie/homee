@@ -1,12 +1,17 @@
 import EventEmitter from "events";
 import { decodeBase64 } from "../helpers/decodeBase64.js";
 import { YeelightConnectionService } from "./ConnectionService/YeelightConnection.service.js";
+import { DefaultTransitionEffect } from "./DefaultTransitionEffect.js";
 import { BulbNotFoundError } from "./Errors/BulbNotFound.error.js";
+import { ValidationError } from "./Errors/Validation.error.js";
 import { YeelightRepository } from "./Repository/Yeelight.repository.js";
 import YeelightSearcher from "./Searcher/YeelightSearcher.js";
 import { YeelightSearcherEvents } from "./Searcher/YeelightSearcherEvents.enum.js";
 import { YeelightService } from "./Yeelight.service.js";
 import { yeelightServiceEvents } from "./yeelightServiceEvents.js";
+import { RGB } from "./__types__/RGB.js";
+import { TransitionEffect } from "./__types__/TransitionEffect.js";
+import { TransitionModeEnum } from "./__types__/TransitionMode.enum.js";
 import { Yeelight } from "./__types__/Yeelight.js";
 import { YeelightMode } from "./__types__/YeelightMode.enum.js";
 
@@ -20,6 +25,10 @@ export class YeelightServiceImplementation
     private readonly _yeelightConnectionService: YeelightConnectionService,
   ) {
     super();
+  }
+  public async getAllBulbs(): Promise<Yeelight[]> {
+    const bulbs = this._yeelightRepository.getYeelights();
+    return Promise.all(bulbs.map((bulb) => this.getState(bulb)));
   }
 
   public initializeSearcher() {
@@ -46,13 +55,160 @@ export class YeelightServiceImplementation
     return this._yeelightRepository.findBulbById(id);
   }
 
-  public setName(bulbOrItsId: Yeelight | string, name: string): void {
+  public async setName(
+    bulbOrItsId: Yeelight | string,
+    name: string,
+  ): Promise<void> {
     const bulb = this.getBulb(bulbOrItsId);
 
-    this._yeelightConnectionService.executeCommands(bulb, [
+    await this._yeelightConnectionService.executeCommands(bulb, [
       {
         command: "set_name",
         params: [name],
+      },
+    ]);
+  }
+
+  public async setBright(
+    bulbOrItsId: Yeelight | string,
+    lightness: number,
+    effect: TransitionEffect = DefaultTransitionEffect,
+  ): Promise<void> {
+    if (lightness < 0 || lightness > 100) {
+      throw new ValidationError("lightness", "between 0 and 100");
+    }
+
+    this.validateTransitionEffect(effect);
+
+    const bulb = this.getBulb(bulbOrItsId);
+
+    await this._yeelightConnectionService.executeCommands(bulb, [
+      {
+        command: "set_bright",
+        params: [lightness, effect.effect, effect.durationInMs],
+      },
+    ]);
+  }
+
+  public async setCt(
+    bulbOrItsId: Yeelight | string,
+    ct: number,
+    lightness: number,
+    effect: TransitionEffect = DefaultTransitionEffect,
+  ): Promise<void> {
+    if (ct < 1700 || ct > 6500) {
+      throw new ValidationError("lightness", "between 1700 and 6500");
+    }
+    if (lightness < 0 || lightness > 100) {
+      throw new ValidationError("lightness", "between 0 and 100");
+    }
+
+    this.validateTransitionEffect(effect);
+
+    const bulb = this.getBulb(bulbOrItsId);
+
+    await this._yeelightConnectionService.executeCommands(bulb, [
+      {
+        command: "set_ct_abx",
+        params: [ct, effect.effect, Math.round(effect.durationInMs / 2)],
+      },
+      {
+        command: "set_bright",
+        params: [lightness, effect.effect, Math.round(effect.durationInMs / 2)],
+      },
+    ]);
+  }
+
+  public async setPower(
+    bulbOrItsId: Yeelight | string,
+    turnOn: boolean,
+    effect: TransitionEffect = DefaultTransitionEffect,
+  ): Promise<void> {
+    this.validateTransitionEffect(effect);
+
+    const bulb = this.getBulb(bulbOrItsId);
+
+    await this._yeelightConnectionService.executeCommands(bulb, [
+      {
+        command: "set_power",
+        params: [turnOn ? "on" : "off", effect.effect, effect.durationInMs],
+      },
+    ]);
+  }
+
+  public async setHSL(
+    bulbOrItsId: Yeelight | string,
+    hue: number,
+    saturation: number,
+    lightness: number,
+    effect: TransitionEffect = DefaultTransitionEffect,
+  ): Promise<void> {
+    if (hue < 0 || hue > 360) {
+      throw new ValidationError("hue", "between 0 and 360");
+    }
+
+    if (saturation < 0 || saturation > 360) {
+      throw new ValidationError("saturation", "between 0 and 100");
+    }
+
+    if (lightness < 0 || lightness > 100) {
+      throw new ValidationError("lightness", "between 0 and 100");
+    }
+
+    this.validateTransitionEffect(effect);
+
+    const bulb = this.getBulb(bulbOrItsId);
+
+    await this._yeelightConnectionService.executeCommands(bulb, [
+      {
+        command: "set_hsv",
+        params: [
+          hue,
+          saturation,
+          effect.effect,
+          Math.round(effect.durationInMs / 2),
+        ],
+      },
+      {
+        command: "set_bright",
+        params: [lightness, effect.effect, Math.round(effect.durationInMs / 2)],
+      },
+    ]);
+  }
+
+  public async setRGBL(
+    bulbOrItsId: Yeelight | string,
+    rgb: RGB,
+    lightness: number,
+    effect: TransitionEffect = DefaultTransitionEffect,
+  ): Promise<void> {
+    if (rgb.red < 0 || rgb.red > 255) {
+      throw new ValidationError("rgb.red", "between 0 and 255");
+    }
+    if (rgb.green < 0 || rgb.green > 255) {
+      throw new ValidationError("rgb.green", "between 0 and 255");
+    }
+    if (rgb.blue < 0 || rgb.blue > 255) {
+      throw new ValidationError("rgb.blue", "between 0 and 255");
+    }
+
+    if (lightness < 0 || lightness > 100) {
+      throw new ValidationError("lightness", "between 0 and 100");
+    }
+
+    this.validateTransitionEffect(effect);
+
+    const bulb = this.getBulb(bulbOrItsId);
+    const rgbHex = (rgb.red << 16) | (rgb.green << 8) | rgb.blue;
+
+    await this._yeelightConnectionService.executeCommands(bulb, [
+      {
+        command: "set_rgb",
+        params: [rgbHex, effect.effect, Math.round(effect.durationInMs / 2)],
+      },
+      {
+        command: "set_bright",
+        params: [lightness, effect.effect, Math.round(effect.durationInMs / 2)],
       },
     ]);
   }
@@ -95,5 +251,18 @@ export class YeelightServiceImplementation
     }
 
     return bulbOrItsId;
+  }
+
+  private validateTransitionEffect(effect: TransitionEffect) {
+    if (effect.durationInMs < 30) {
+      throw new ValidationError("transition duration", "longer than 30ms");
+    }
+
+    if (!Object.values(TransitionModeEnum).includes(effect.effect)) {
+      throw new ValidationError(
+        "transition effect",
+        `must be one of [${Object.values(TransitionModeEnum).join(",")}]`,
+      );
+    }
   }
 }

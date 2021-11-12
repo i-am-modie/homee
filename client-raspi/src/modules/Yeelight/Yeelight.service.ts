@@ -1,4 +1,6 @@
 import EventEmitter from "events";
+import { RGB } from "./__types__/RGB";
+import { TransitionEffect } from "./__types__/TransitionEffect";
 import { Yeelight } from "./__types__/Yeelight";
 
 export interface YeelightService extends EventEmitter {
@@ -6,6 +8,36 @@ export interface YeelightService extends EventEmitter {
   terminateSearcher(): void;
   upsertBulb(bulb: Yeelight): Promise<void>;
   findBulbById(id: string): Yeelight | undefined;
-  setName(bulbOrItsId: Yeelight | string, name: string): void;
+  setName(bulbOrItsId: Yeelight | string, name: string): Promise<void>;
   getState(bulbOrItsId: Yeelight | string): Promise<Yeelight>;
+  getAllBulbs(): Promise<Yeelight[]>;
+  setHSL(
+    bulbOrItsId: Yeelight | string,
+    hue: number,
+    saturation: number,
+    lightness: number,
+    effect?: TransitionEffect,
+  ): Promise<void>;
+  setRGBL(
+    bulbOrItsId: Yeelight | string,
+    rgb: RGB,
+    lightness: number,
+    effect?: TransitionEffect,
+  ): Promise<void>;
+  setBright(
+    bulbOrItsId: Yeelight | string,
+    lightness: number,
+    effect?: TransitionEffect,
+  ): Promise<void>;
+  setPower(
+    bulbOrItsId: Yeelight | string,
+    turnOn: boolean,
+    effect?: TransitionEffect,
+  ): Promise<void>;
+  setCt(
+    bulbOrItsId: Yeelight | string,
+    ct: number,
+    lightness: number,
+    effect?: TransitionEffect,
+  ): Promise<void>;
 }

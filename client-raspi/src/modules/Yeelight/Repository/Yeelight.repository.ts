@@ -9,8 +9,19 @@ const __dirname = path.dirname(
 );
 type Scheme = { lights: { [id: string]: Yeelight } };
 
+export const yeelightRepositoryFactory = async (
+  logger: Logger,
+  path: string,
+) => {
+  const yeelightRepository = new YeelightRepository(logger, path);
+  await yeelightRepository.createConnection();
+
+  return yeelightRepository;
+};
+
 export class YeelightRepository {
   private _db: Low<Scheme>;
+  private _isConnected = false;
 
   constructor(private readonly _logger: Logger, path: string) {
     // Use JSON file for storage
@@ -18,6 +29,13 @@ export class YeelightRepository {
     const adapter = new JSONFile<Scheme>(filePath);
     this._db = new Low<Scheme>(adapter);
     this._db.data ||= { lights: {} };
+  }
+  public async createConnection() {
+    if (this._isConnected) {
+      return;
+    }
+    await this._db.read();
+    this._isConnected = true;
   }
 
   public getYeelights(): Yeelight[] {
