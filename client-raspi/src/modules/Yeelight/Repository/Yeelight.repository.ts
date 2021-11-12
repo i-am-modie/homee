@@ -1,11 +1,11 @@
 import path, { join } from "path";
 import { Low, JSONFile } from "lowdb";
-import { Yeelight } from "../Yeelight.js";
+import { Yeelight } from "../__types__/Yeelight.js";
 import { fileURLToPath } from "url";
 import { Logger } from "../../Logger/Logger.js";
 
 const __dirname = path.dirname(
-  join(fileURLToPath(import.meta.url), "../../.."),
+  join(fileURLToPath(import.meta.url), "../../../.."),
 );
 type Scheme = { lights: { [id: string]: Yeelight } };
 
@@ -14,8 +14,8 @@ export class YeelightRepository {
 
   constructor(private readonly _logger: Logger, path: string) {
     // Use JSON file for storage
-    const file = join(__dirname, path);
-    const adapter = new JSONFile<Scheme>(file);
+    const filePath = join(__dirname, path);
+    const adapter = new JSONFile<Scheme>(filePath);
     this._db = new Low<Scheme>(adapter);
     this._db.data ||= { lights: {} };
   }
@@ -24,19 +24,19 @@ export class YeelightRepository {
     return Object.values(this._db.data?.lights ?? {});
   }
 
-  public getBulbByName(name: string): Yeelight | undefined {
+  public findBulbByName(name: string): Yeelight | undefined {
     return (
       this._db.data?.lights &&
       Object.values(this._db.data.lights).find((light) => light.name === name)
     );
   }
 
-  public getBulbById(id: string): Yeelight | undefined {
+  public findBulbById(id: string): Yeelight | undefined {
     return this._db.data?.lights[id];
   }
 
   public async upsertBulb(yeelight: Yeelight) {
     this._db.data!.lights[yeelight.id] = yeelight;
-    this._db.write();
+    await this._db.write();
   }
 }

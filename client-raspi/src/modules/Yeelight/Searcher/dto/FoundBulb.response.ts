@@ -1,8 +1,8 @@
 import { URL } from "url";
 import { decodeBase64 } from "../../../helpers/decodeBase64.js";
-import { Yeelight } from "../../Yeelight.js";
-import { YeelightMode } from "../../YeelightMode.enum.js";
-import { YeelightModel } from "../../YeelightModel.enum.js";
+import { Yeelight } from "../../__types__/Yeelight.js";
+import { YeelightMode } from "../../__types__/YeelightMode.enum.js";
+import { YeelightModel } from "../../__types__/YeelightModel.enum.js";
 
 export enum FoundBulbResponseModel {
   COLOR = "color",

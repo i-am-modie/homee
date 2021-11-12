@@ -1,4 +1,4 @@
-export const yeelightSearcherEvents = {
+export const yeelightServiceEvents = {
   newBulbData: "newBulb",
   getBulbs: "getBulbs",
 };

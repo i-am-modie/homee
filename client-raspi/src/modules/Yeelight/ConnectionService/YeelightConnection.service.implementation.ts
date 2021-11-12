@@ -2,12 +2,12 @@ import net from "net";
 import { inspect } from "util";
 import { generateRandomId } from "../../helpers/generateRandomId.js";
 import { Logger } from "../../Logger/Logger.js";
-import { Yeelight } from "../Yeelight.js";
+import { Yeelight } from "../__types__/Yeelight.js";
 import {
   YeelightConnectionService,
   YeelightConnectionServiceCommand,
   YeelightConnectionServiceCommandResponse,
-} from "./YeelightConnectionService.js";
+} from "./YeelightConnection.service.js";
 
 interface YeelightConnectionServiceCommandWithId
   extends YeelightConnectionServiceCommand {
@@ -47,7 +47,7 @@ export class YeelightConnectionServiceImplementation
 
     if (!commands?.length) {
       this._logger.warn("Executed 0 commands on ${}");
-      return;
+      return [];
     }
 
     if (!this.areConstrainsFulfilled(target, commands)) {
@@ -71,7 +71,7 @@ export class YeelightConnectionServiceImplementation
     } catch (err) {
       throw err;
     } finally {
-      this.closeTCPConnection(connection);
+      this.closeTCPConnection(connection!);
     }
   }
 

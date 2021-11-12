@@ -6,35 +6,54 @@ import {
   FoundBulbResponseDTO,
   mapFoundBulbResponseDTOToYeelightModel,
 } from "./dto/FoundBulb.response.js";
-import { yeelightSearcherEvents } from "./yeelightSearcherEvents.js";
+import { YeelightSearcherEvents } from "./YeelightSearcherEvents.enum.js";
 const { Client } = pkg;
 
 export default class YeelightSearcher extends EventEmitter {
-  client: pkg.Client;
-  bulbs: string[] = [];
+  private _client: pkg.Client;
+  private _isInitialized: boolean = false;
+
   constructor(private readonly _logger: Logger) {
     super();
     const config = { ssdpPort: 1982, sourcePort: 1982 };
-    this.client = new Client({ ...config });
+    this._client = new Client({ ...config });
+  }
 
-    this.client.on("response", (data) =>
+  public init() {
+    if (this._isInitialized) {
+      return;
+    }
+
+    this._client.on("response", (data) =>
       this.emit(
-        yeelightSearcherEvents.newBulbData,
+        YeelightSearcherEvents.newBulbData,
         mapFoundBulbResponseDTOToYeelightModel(
           data as unknown as FoundBulbResponseDTO,
         ),
       ),
     );
 
-    this.on(yeelightSearcherEvents.getBulbs, () => {
+    this.on(YeelightSearcherEvents.getBulbs, () => {
       this.search();
     });
 
-    this.search();
+    this._isInitialized = true;
   }
 
-  search = () => {
-    this._logger.log("Searching bulbs");
-    this.client.search("wifi_bulb");
-  };
+  public terminate() {
+    if (!this._isInitialized) {
+      return;
+    }
+
+    this._client.removeAllListeners();
+    this.removeAllListeners(YeelightSearcherEvents.getBulbs);
+
+    this._isInitialized = false;
+  }
+
+  private search() {
+    const loggerAction = this._logger.beginAction("Searching bulbs");
+    this._client.search("wifi_bulb");
+    this._logger.endAction(loggerAction);
+  }
 }

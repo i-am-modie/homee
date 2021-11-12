@@ -1,7 +1,8 @@
-import { Yeelight } from "../Yeelight.js";
+import { Yeelight } from "../__types__/Yeelight.js";
+import { YeelightCommands } from "./YeelightCommands.js";
 
 export interface YeelightConnectionServiceCommand {
-  command: string;
+  command: YeelightCommands;
   params?: Array<string | number>;
 }
 
@@ -14,5 +15,5 @@ export interface YeelightConnectionService {
   executeCommands(
     target: Yeelight,
     commands: YeelightConnectionServiceCommand[],
-  ): Promise<YeelightConnectionServiceCommandResponse[]>
+  ): Promise<YeelightConnectionServiceCommandResponse[]>;
 }

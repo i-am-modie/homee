@@ -3,32 +3,44 @@
 import "reflect-metadata";
 import dotenv from "dotenv";
 import { Logger } from "./modules/Logger/Logger.js";
-import { Yeelight } from "./modules/Yeelight/Yeelight.js";
+import { Yeelight } from "./modules/Yeelight/__types__/Yeelight.js";
 import { YeelightRepository } from "./modules/Yeelight/Repository/Yeelight.repository.js";
 import YeelightSearcher from "./modules/Yeelight/Searcher/YeelightSearcher.js";
-import { yeelightSearcherEvents } from "./modules/Yeelight/Searcher/yeelightSearcherEvents.js";
-import { YeelightConnectionServiceImplementation } from "./modules/Yeelight/ConnectionService/YeelightConnectionServiceImplementation.js";
-import { YeelightConnectionService } from "./modules/Yeelight/ConnectionService/YeelightConnectionService";
+import { YeelightSearcherEvents } from "./modules/Yeelight/Searcher/YeelightSearcherEvents.enum.js";
+import { YeelightConnectionServiceImplementation } from "./modules/Yeelight/ConnectionService/YeelightConnection.service.implementation.js";
+import { YeelightConnectionService } from "./modules/Yeelight/ConnectionService/YeelightConnection.service";
+import EventEmitter, { on } from "events";
+import { YeelightServiceImplementation } from "./modules/Yeelight/Yeelight.service.implementation.js";
+import { YeelightService } from "./modules/Yeelight/Yeelight.service.js";
+import { YeelightServiceEvents } from "./modules/Yeelight/__types__/YeelightServiceEvents.enum.js";
+import { yeelightServiceEvents } from "./modules/Yeelight/yeelightServiceEvents.js";
 
 dotenv.config();
 
 const logger = new Logger();
-const searcher = new YeelightSearcher(logger);
+const yeelightSearcher = new YeelightSearcher(logger);
 const yeelightRepository = new YeelightRepository(
   logger,
-  process.env.LOW_DB_PATH,
+  process.env.LOW_DB_PATH!,
+);
+const yeelightConnectionService: YeelightConnectionService =
+  new YeelightConnectionServiceImplementation(logger);
+const yeelightService: YeelightService = new YeelightServiceImplementation(
+  yeelightSearcher,
+  yeelightRepository,
+  yeelightConnectionService,
 );
 logger.log("App started");
 
-const yeelightConnectionService: YeelightConnectionService =
-  new YeelightConnectionServiceImplementation(logger);
+yeelightService.initializeSearcher();
+yeelightService.emit(YeelightServiceEvents.getBulbs);
 
 setInterval(() => {
-  searcher.emit(yeelightSearcherEvents.getBulbs);
+  yeelightService.emit(YeelightServiceEvents.getBulbs);
 }, 1000 * 180);
 
-searcher.on(yeelightSearcherEvents.newBulbData, (data: Yeelight) => {
-  yeelightRepository.upsertBulb(data);
+yeelightService.on(yeelightServiceEvents.newBulbData, (data: Yeelight) => {
+  yeelightService.upsertBulb(data);
 });
 
 setTimeout(() => {
@@ -36,13 +48,8 @@ setTimeout(() => {
 
   setInterval(async () => {
     try {
-      await yeelightConnectionService
-        .executeCommands(yeelightRepository.getBulbById("0x0000000007e7a51b"), [
-          {
-            command: "get_prop",
-            params: ["power", "bright"],
-          },
-        ])
+      yeelightService
+        .getState("0x0000000007e7a51b")
         .then((data) => logger.log(data));
     } catch (err) {
       logger.error(err);
