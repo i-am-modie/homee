@@ -15,28 +15,27 @@ import { YeelightServiceImplementation } from "./modules/Yeelight/Yeelight.servi
 import { YeelightService } from "./modules/Yeelight/Yeelight.service.js";
 import { YeelightServiceEvents } from "./modules/Yeelight/__types__/YeelightServiceEvents.enum.js";
 import { yeelightServiceEvents } from "./modules/Yeelight/yeelightServiceEvents.js";
-
-const setupYeelightService = async (logger: Logger) => {
-  const yeelightSearcher = new YeelightSearcher(logger);
-  const yeelightRepository = await yeelightRepositoryFactory(
-    logger,
-    process.env.LOW_DB_PATH!,
-  );
-  const yeelightConnectionService: YeelightConnectionService =
-    new YeelightConnectionServiceImplementation(logger);
-  const yeelightService: YeelightService = new YeelightServiceImplementation(
-    yeelightSearcher,
-    yeelightRepository,
-    yeelightConnectionService,
-  );
-
-  return yeelightService;
-};
+import { createSocketClient } from "./modules/socket/client/socketClient.js";
+import { SocketController } from "./modules/socket/Socket.controller.js";
 
 dotenv.config();
 
 const logger = new Logger();
-const yeelightService = await setupYeelightService(logger);
+const yeelightSearcher = new YeelightSearcher(logger);
+const yeelightRepository = await yeelightRepositoryFactory(
+  logger,
+  process.env.LOW_DB_PATH!,
+);
+const yeelightConnectionService: YeelightConnectionService =
+  new YeelightConnectionServiceImplementation(logger);
+const yeelightService: YeelightService = new YeelightServiceImplementation(
+  yeelightSearcher,
+  yeelightRepository,
+  yeelightConnectionService,
+);
+
+const socket = createSocketClient(process.env.API_URL!, process.env.API_TOKEN!);
+const socketController = new SocketController(logger, socket, yeelightService);
 
 logger.log("App started");
 

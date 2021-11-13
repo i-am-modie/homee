@@ -1,4 +1,5 @@
 import { inspect } from "util";
+import autoBind from "auto-bind";
 import { getCurrentDate } from "../helpers/getCurrentDate.js";
 
 export interface LoggerActionInProgressInfo {
@@ -7,6 +8,10 @@ export interface LoggerActionInProgressInfo {
 }
 
 export class Logger {
+  constructor() {
+    autoBind(this);
+  }
+
   public log(message: any) {
     console.log(`${this.getPrefix()} - ${inspect(message)}`);
   }

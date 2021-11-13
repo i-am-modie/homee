@@ -1,5 +1,6 @@
 import net from "net";
 import { inspect } from "util";
+import autoBind from "auto-bind";
 import { generateRandomId } from "../../helpers/generateRandomId.js";
 import { Logger } from "../../Logger/Logger.js";
 import { Yeelight } from "../__types__/Yeelight.js";
@@ -33,7 +34,9 @@ export class YeelightConnectionServiceImplementation
   // * Max yeelight request id is as it's stored in 4 bytes (2^32-1 )
   private readonly MAX_SAFE_REQUEST_ID = 4294967295;
 
-  constructor(private readonly _logger: Logger) {}
+  constructor(private readonly _logger: Logger) {
+    autoBind(this);
+  }
 
   public async executeCommands(
     target: Yeelight,

@@ -1,5 +1,6 @@
 import path, { join } from "path";
 import { Low, JSONFile } from "lowdb";
+import autoBind from "auto-bind";
 import { Yeelight } from "../__types__/Yeelight.js";
 import { fileURLToPath } from "url";
 import { Logger } from "../../Logger/Logger.js";
@@ -24,6 +25,7 @@ export class YeelightRepository {
   private _isConnected = false;
 
   constructor(private readonly _logger: Logger, path: string) {
+    autoBind(this);
     // Use JSON file for storage
     const filePath = join(__dirname, path);
     const adapter = new JSONFile<Scheme>(filePath);

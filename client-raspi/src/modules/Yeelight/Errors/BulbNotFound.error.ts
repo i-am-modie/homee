@@ -1,5 +1,9 @@
 export class BulbNotFoundError extends Error {
+  public message: string;
+
   constructor(id: string) {
-    super(`Bulb with ${id} not found`);
+    const message = `Bulb with ${id} not found`;
+    super(message);
+    this.message = message;
   }
 }

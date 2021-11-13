@@ -8,6 +8,10 @@
             "name": "client",
             "path": "client-raspi"
         }
+        {
+            "name": "socket-gateway",
+            "path": "socket-gateway"
+        }
     ],
     "settings": {
         "editor.formatOnSave": true,

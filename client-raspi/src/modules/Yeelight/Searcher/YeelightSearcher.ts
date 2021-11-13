@@ -1,6 +1,6 @@
 import { EventEmitter } from "events";
 import pkg from "node-ssdp";
-
+import autoBind from "auto-bind";
 import { Logger } from "../../Logger/Logger.js";
 import {
   FoundBulbResponseDTO,
@@ -15,6 +15,7 @@ export default class YeelightSearcher extends EventEmitter {
 
   constructor(private readonly _logger: Logger) {
     super();
+    autoBind(this);
     const config = { ssdpPort: 1982, sourcePort: 1982 };
     this._client = new Client({ ...config });
   }

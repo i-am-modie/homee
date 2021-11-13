@@ -1,4 +1,5 @@
 import EventEmitter from "events";
+import autoBind from "auto-bind";
 import { decodeBase64 } from "../helpers/decodeBase64.js";
 import { YeelightConnectionService } from "./ConnectionService/YeelightConnection.service.js";
 import { DefaultTransitionEffect } from "./DefaultTransitionEffect.js";
@@ -25,6 +26,7 @@ export class YeelightServiceImplementation
     private readonly _yeelightConnectionService: YeelightConnectionService,
   ) {
     super();
+    autoBind(this);
   }
   public async getAllBulbs(): Promise<Yeelight[]> {
     const bulbs = this._yeelightRepository.getYeelights();
