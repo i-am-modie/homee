@@ -2,3 +2,4 @@ node_modules
 build
 dist
 bulb_db.json
+.env
