@@ -1,10 +1,10 @@
 {
     "compilerOptions": {
-        "target": "es2020",
-        "lib": ["es2020"],
-        "module": "esnext",
+        "target": "es6",
+        "lib": ["es6"],
         "typeRoots": ["./src/types", "./node_modules/@types"],
         "allowSyntheticDefaultImports": true,
+        "module": "CommonJS",
         "experimentalDecorators": true,
         "emitDecoratorMetadata": true,
         "moduleResolution": "node",
@@ -13,9 +13,9 @@
         "allowJs": true,
         "baseUrl": ".",
         "esModuleInterop": true,
-        "strict": true
+        "strict": true,
         // "skipLibCheck": true
     },
-    "include": ["./src/**/*"],
+    "include": ["./src/**/*", "index.ts", "./prisma/**/*", "./client-dto/**/*" ],
     "exclude": ["node_modules"]
 }
