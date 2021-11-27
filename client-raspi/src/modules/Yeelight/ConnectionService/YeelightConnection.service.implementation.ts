@@ -9,6 +9,8 @@ import {
   YeelightConnectionServiceCommand,
   YeelightConnectionServiceCommandResponse,
 } from "./YeelightConnection.service.js";
+import { resolve } from "path/posix";
+import { rejects } from "assert";
 
 interface YeelightConnectionServiceCommandWithId
   extends YeelightConnectionServiceCommand {
@@ -62,7 +64,7 @@ export class YeelightConnectionServiceImplementation
     let connection: net.Socket;
 
     try {
-      connection = this.openTCPConnection(target);
+      connection = await this.openTCPConnection(target);
       const responses = [];
 
       for (const command of commandsWithIds) {
@@ -78,18 +80,22 @@ export class YeelightConnectionServiceImplementation
     }
   }
 
-  private openTCPConnection(target: Yeelight): net.Socket {
-    const client = new net.Socket();
-    try {
-      return client.connect(target.port, target.location);
-    } catch (err) {
-      client.destroy();
-      throw err;
-    }
+  private openTCPConnection(target: Yeelight): Promise<net.Socket> {
+    return new Promise((resolve, rejects) => {
+      const client = new net.Socket();
+      try {
+        const connection = client.connect(target.port, target.location);
+        client.on("connect", () => resolve(connection));
+        client.on("error", (err) => rejects(err));
+      } catch (err) {
+        client.destroy();
+        rejects(err);
+      }
+    });
   }
 
   private closeTCPConnection(connection: net.Socket) {
-    connection.destroy();
+    connection?.destroy();
   }
 
   private executeCommand(

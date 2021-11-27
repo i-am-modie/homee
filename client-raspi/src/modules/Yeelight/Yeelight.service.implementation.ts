@@ -15,6 +15,8 @@ import { TransitionEffect } from "./__types__/TransitionEffect.js";
 import { TransitionModeEnum } from "./__types__/TransitionMode.enum.js";
 import { Yeelight } from "./__types__/Yeelight.js";
 import { YeelightMode } from "./__types__/YeelightMode.enum.js";
+import {truthy} from "../helpers/truthyfilter.js"
+import { inspect } from "util";
 
 export class YeelightServiceImplementation
   extends EventEmitter
@@ -28,9 +30,19 @@ export class YeelightServiceImplementation
     super();
     autoBind(this);
   }
-  public async getAllBulbs(): Promise<Yeelight[]> {
+  public async getAllBulbs(): Promise<Array<Yeelight>> {
     const bulbs = this._yeelightRepository.getYeelights();
-    return Promise.all(bulbs.map((bulb) => this.getState(bulb)));
+    return (
+      await Promise.all(
+        bulbs.map(async (bulb) => {
+          try {
+            return await this.getState(bulb);
+          } catch {
+            return undefined;
+          }
+        }),
+      )
+    ).filter(truthy);
   }
 
   public initializeSearcher() {
