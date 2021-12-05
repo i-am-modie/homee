@@ -1,6 +1,6 @@
 import { PrismaClient } from ".prisma/client";
 import { Container } from "inversify";
-import { Server } from "socket.io";
+import { Server, Socket } from "socket.io";
 import { Express } from "express";
 import { injectables } from "./injectables";
 import { SocketHelpers } from "../socket/SocketHelpers";
@@ -11,6 +11,8 @@ import { JWTHelper } from "../jwt/JWTHelper";
 import { UserController } from "../user/User.controller";
 import { JWTHelperImplementation } from "../jwt/JWTHelper.implementation";
 import { DeviceController } from "../device/Device.controller";
+import { ClientService } from "../client/Client.service";
+import { ClientServiceImplementation } from "../client/Client.service.implementation";
 
 const initContainer = (prisma: PrismaClient, io: Server, app: Express) => {
   const containerToInit = new Container();
@@ -30,6 +32,9 @@ const initContainer = (prisma: PrismaClient, io: Server, app: Express) => {
   containerToInit
     .bind<JWTHelper>(injectables.JWTHelper)
     .to(JWTHelperImplementation);
+  containerToInit
+    .bind<ClientService>(injectables.ClientService)
+    .to(ClientServiceImplementation);
 
   containerToInit
     .bind<{}>(injectables.controllers.UserController)
@@ -37,6 +42,11 @@ const initContainer = (prisma: PrismaClient, io: Server, app: Express) => {
   containerToInit
     .bind<{}>(injectables.controllers.DeviceController)
     .to(DeviceController);
+
+  containerToInit
+    .bind<Map<string, Socket>>(injectables.SocketList)
+    .toConstantValue(new Map());
+
   return containerToInit;
 };
 

@@ -15,10 +15,25 @@ model User {
   username String @unique
   password String
   Room     Room[]
+  Bulb     Bulb[]
 }
 
 model Room {
   userId Int    @id
   user   User   @relation(fields: [userId], references: [userId])
   room   String @unique
+}
+
+model Bulb {
+  id                String  @id
+  userId            Int
+  user              User    @relation(fields: [userId], references: [userId])
+  name              String?
+  model             String
+  colorMode         Int
+  available_actions String  @db.VarChar(500)
+  rgb               String
+  hue               Int
+  sat               Int
+  ct                Int
 }

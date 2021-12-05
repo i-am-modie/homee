@@ -52,9 +52,9 @@ export default class YeelightSearcher extends EventEmitter {
     this._isInitialized = false;
   }
 
-  private search() {
+  private async search() {
     const loggerAction = this._logger.beginAction("Searching bulbs");
-    this._client.search("wifi_bulb");
+    await this._client.search("wifi_bulb");
     this._logger.endAction(loggerAction);
   }
 }

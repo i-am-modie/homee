@@ -129,7 +129,7 @@ export class YeelightConnectionServiceImplementation
             this._logger.error(
               `Command ${
                 command.id
-              } failed to execute with error ${response.error.join(" ")}`,
+              } failed to execute with error ${response && response.error && response.error?.join?.(" ")}`,
             );
             return reject(response);
           }

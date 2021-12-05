@@ -16,6 +16,7 @@ import { TransitionEffect } from "../Yeelight/__types__/TransitionEffect.js";
 import { TransitionModeEnum } from "../Yeelight/__types__/TransitionMode.enum";
 import { disconnect } from "process";
 import { inspect } from "util";
+import { GetBulbsDtoResponse } from "./dtos/GetBulbs.dto";
 
 type SocketEventObject = [name: SocketEvent, handler: SocketEventObjectHandler];
 
@@ -67,7 +68,15 @@ export class SocketController {
     payload: unknown,
     cb?: SocketEventObjectHandlerCallback,
   ): Promise<void> {
-    cb?.(undefined, await this._yeelightService.getAllBulbs());
+    console.log("Refetching all bulbs");
+    const bulbs: Yeelight[] = await this._yeelightService.getAllBulbs();
+    const dto: GetBulbsDtoResponse = {
+      bulbs: bulbs.map(({ location, port, ...bulb }) => ({
+        ...bulb,
+      })) as unknown as GetBulbsDtoResponse["bulbs"],
+    };
+    console.log("got bulbs responding");
+    cb?.(undefined, dto);
   }
 
   private async handleGetBulb(
@@ -76,7 +85,8 @@ export class SocketController {
   ): Promise<void> {
     try {
       const bulbData = await this.getBulb(bulbId);
-      cb?.(undefined, bulbData);
+      const { location, port, ...bulb } = bulbData;
+      cb?.(undefined, bulb);
     } catch (err) {
       cb?.(err instanceof Error ? err.message : "Unknown error");
     }
