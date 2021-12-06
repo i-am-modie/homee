@@ -9,11 +9,9 @@ import { LoggedRequest } from "../auth/LoggedRequest";
 import { ClientService } from "../client/Client.service";
 import { injectables } from "../ioc/injectables";
 import { JWTHelper } from "../jwt/JWTHelper";
-import { Bulb } from "../models/Bulb";
-import { YeelightMode } from "../models/YeelightMode.enum";
-import { YeelightModel } from "../models/YeelightModel.enum";
+import { generateToken } from "../socket/socketClientJwtHelper";
 import { SocketHelpers } from "../socket/SocketHelpers";
-import { RefetchDevicesResponseBodyDto } from "./dto/RefetchDevices.dto";
+import { RegenerateDeviceTokenResponseBodyDto } from "./dto/RegenerateDeviceToken.dto";
 
 @injectable()
 export class DeviceController {
@@ -32,12 +30,6 @@ export class DeviceController {
     console.log("registering device endpoints");
     autoBind(this);
 
-    http.post(
-      this.prefixedUrl(""),
-      isLoggedIn(this.JWTHelper),
-      this.handleNewDevice
-    );
-
     http.get(
       this.prefixedUrl("/status"),
       isLoggedIn(this.JWTHelper),
@@ -45,72 +37,13 @@ export class DeviceController {
     );
 
     http.post(
-      this.prefixedUrl("/refetch"),
+      this.prefixedUrl("/token/regenerate"),
       isLoggedIn(this.JWTHelper),
-      this.handleRefetchDevices
+      this.handleRegenerateDeviceToken
     );
   }
-  private async handleRefetchDevices(
-    req: Request,
-    res: Response<RefetchDevicesResponseBodyDto | string>
-  ) {
-    const loggedReq = req as LoggedRequest;
-    const userId = loggedReq.user.userId;
-    try {
-      const room = await this.db.room.findUnique({ where: { userId } });
-      if (!room) {
-        return res.send({ bulbs: [] });
-      }
 
-      const fetchedBulbs: Bulb[] = await this.clientService.getBulbs(room.room);
-
-      await Promise.all(
-        fetchedBulbs.map(async (bulb) => {
-          console.log(JSON.stringify(bulb.available_actions).length);
-          return this.db.bulb.upsert({
-            where: {
-              id: bulb.id,
-            },
-            update: {
-              ...bulb,
-              available_actions: JSON.stringify(bulb.available_actions),
-              colorMode: +bulb.colorMode as YeelightMode,
-            },
-            create: {
-              ...bulb,
-              available_actions: JSON.stringify(bulb.available_actions),
-              colorMode: +bulb.colorMode as YeelightMode,
-              userId: userId,
-            },
-          });
-        })
-      );
-
-      const allBulbsFromDb = await this.db.bulb.findMany({
-        where: {
-          userId,
-        },
-      });
-
-      return res.send({
-        bulbs: allBulbsFromDb.map((bulb) => ({
-          ...bulb,
-          name: bulb.name || undefined,
-          colorMode: bulb.colorMode as YeelightMode,
-          model: bulb.model as YeelightModel,
-          available_actions: JSON.parse(bulb.available_actions),
-        })),
-      });
-    } catch (err) {
-      console.log(err);
-      res.status(500).send("Server error occured");
-    }
-  }
-
-  private async handleNewDevice(req: Request, res: Response) {
-    const loggedReq = req as LoggedRequest;
-    const userId = loggedReq.user.userId;
-
+  private async createRoomIfNotExist(userId: number) {
     const room = await this.db.room.findUnique({ where: { userId } });
     if (!room) {
       await this.db.room.create({
@@ -120,13 +53,8 @@ export class DeviceController {
         },
       });
     }
-
-    res.send(
-      this.JWTHelper.generateDeviceToken({
-        userId: loggedReq.user.userId,
-      })
-    );
   }
+
   private async handleGetDeviceStatus(req: Request, res: Response) {
     const loggedReq = req as LoggedRequest;
     const userId = loggedReq.user.userId;
@@ -144,6 +72,34 @@ export class DeviceController {
     return res.send({
       status: isDeviceAvailable,
     });
+  }
+
+  private async handleRegenerateDeviceToken(req: Request, res: Response) {
+    const loggedReq = req as LoggedRequest;
+    const userId = loggedReq.user.userId;
+
+    await this.db.token.deleteMany({
+      where: {
+        userId,
+      },
+    });
+
+    const deviceToken = generateToken({
+      userId,
+    });
+
+    await this.db.token.create({
+      data: {
+        token: deviceToken,
+        userId,
+      },
+    });
+    await this.createRoomIfNotExist(userId);
+    const response: RegenerateDeviceTokenResponseBodyDto = {
+      token: deviceToken,
+    };
+
+    return res.send(response);
   }
   private prefixedUrl(url: string): string {
     return `${this.prefix}${url}`;

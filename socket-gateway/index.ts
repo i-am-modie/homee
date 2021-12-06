@@ -10,7 +10,7 @@ import { injectables } from "./src/ioc/injectables";
 import { initConnectionHandler } from "./src/socket/initConnectionHandler";
 import { socketAuthMiddleware } from "./src/socket/middlewares/socketAuthMiddleware";
 
-const port = process.env.PORT || 6000;
+const port = process.env.PORT || 5000;
 
 let app = express();
 app.use(cors());

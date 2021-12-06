@@ -11,11 +11,12 @@ datasource db {
 }
 
 model User {
-  userId   Int    @id @default(autoincrement())
-  username String @unique
+  userId   Int     @id @default(autoincrement())
+  username String  @unique
   password String
   Room     Room[]
   Bulb     Bulb[]
+  Token    Token[]
 }
 
 model Room {
@@ -36,4 +37,11 @@ model Bulb {
   hue               Int
   sat               Int
   ct                Int
+}
+
+model Token {
+  id     Int    @id @default(autoincrement())
+  userId Int
+  user   User   @relation(fields: [userId], references: [userId])
+  token  String @unique
 }

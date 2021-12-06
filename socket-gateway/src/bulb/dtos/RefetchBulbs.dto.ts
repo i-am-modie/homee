@@ -2,11 +2,11 @@ import { AvailableCommands } from "../../models/AvailableCommands";
 import { YeelightMode } from "../../models/YeelightMode.enum";
 import { YeelightModel } from "../../models/YeelightModel.enum";
 
-export interface RefetchDevicesResponseBodyDto {
-  bulbs: RefetchDevicesBulbsResponseBodyDto[];
+export interface RefetchBulbsResponseBodyDto {
+  bulbs: RefetchBulbsBulbsResponseBodyDto[];
 }
 
-export interface RefetchDevicesBulbsResponseBodyDto {
+export interface RefetchBulbsBulbsResponseBodyDto {
   id: string;
   name?: string;
   model: YeelightModel;

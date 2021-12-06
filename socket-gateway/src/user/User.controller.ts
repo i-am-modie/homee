@@ -2,10 +2,13 @@ import { PrismaClient } from ".prisma/client";
 import autoBind from "auto-bind";
 import { Express, Request, Response } from "express";
 import { inject, injectable } from "inversify";
+import { isLoggedIn } from "../auth/isLoggedIn";
+import { LoggedRequest } from "../auth/LoggedRequest";
 import { CryptoHelpers } from "../crypto/CryptoHelpers";
 import { injectables } from "../ioc/injectables";
 import { JWTHelper } from "../jwt/JWTHelper";
 import { validateMiddleware } from "../validator/validateMiddleware";
+import { MeResponseBodyDto } from "./dtos/Me.dto";
 import { RegisterUserRequestBodyDto } from "./dtos/RegisterUser.dto";
 import { UserLoginRequestBodyDto } from "./dtos/UserLogin.dto";
 
@@ -31,6 +34,11 @@ export class UserController {
       this.prefixedUrl("/register"),
       validateMiddleware(RegisterUserRequestBodyDto),
       this.handleRegister
+    );
+    http.get(
+      this.prefixedUrl("/me"),
+      isLoggedIn(this.JWTHelper),
+      this.handleMe
     );
   }
 
@@ -71,21 +79,39 @@ export class UserController {
     });
 
     if (!!possibleDuplicate) {
-      res.status(400).send({ message: "username already taken" });
+      return res.status(400).send({ message: "username already taken" });
     }
 
     const hashedPassword = await this.cryptoHelpers.hashPassword(
       req.body.password
     );
 
-    await this.db.user.create({
+    const createdUser = await this.db.user.create({
       data: {
         password: hashedPassword,
         username: req.body.username,
       },
     });
 
-    res.sendStatus(200);
+    res.send(this.JWTHelper.generateToken({ userId: createdUser.userId }));
+  }
+
+  private async handleMe(req: Request, res: Response) {
+    const loggedReq = req as LoggedRequest;
+    const user = await this.db.user.findUnique({
+      where: { userId: loggedReq.user.userId },
+    });
+
+    if (!user) {
+      return res.status(500).send({ message: "Unknown User" });
+    }
+
+    const response: MeResponseBodyDto = {
+      userId: user.userId,
+      username: user.username,
+    };
+
+    res.send(response);
   }
 
   private prefixedUrl(url: string): string {

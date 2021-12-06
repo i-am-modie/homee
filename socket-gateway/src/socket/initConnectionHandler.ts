@@ -8,10 +8,20 @@ export const initConnectionHandler = async (
   prisma: PrismaClient,
   socketLists: Map<string, Socket>
 ) => {
-  const token = socket?.handshake?.auth?.token;
+  const token: string | undefined = socket?.handshake?.auth?.token;
 
   try {
     const { userId } = verifyToken(token);
+    const [, tokenWithoutPrefix] = token!.split(" ");
+    const tokenFromDb = await prisma.token.findUnique({
+      where: {
+        token: tokenWithoutPrefix,
+      },
+    });
+    if (!tokenFromDb) {
+      console.log(`token invalid/no longer valid`);
+      throw new Error(`token invalid/no longer valid`);
+    }
     const room = await prisma.room.findUnique({
       where: {
         userId,

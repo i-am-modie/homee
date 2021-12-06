@@ -13,6 +13,7 @@ import { JWTHelperImplementation } from "../jwt/JWTHelper.implementation";
 import { DeviceController } from "../device/Device.controller";
 import { ClientService } from "../client/Client.service";
 import { ClientServiceImplementation } from "../client/Client.service.implementation";
+import { BulbController } from "../bulb/Bulb.controller";
 
 const initContainer = (prisma: PrismaClient, io: Server, app: Express) => {
   const containerToInit = new Container();
@@ -42,6 +43,10 @@ const initContainer = (prisma: PrismaClient, io: Server, app: Express) => {
   containerToInit
     .bind<{}>(injectables.controllers.DeviceController)
     .to(DeviceController);
+
+  containerToInit
+    .bind<{}>(injectables.controllers.BulbController)
+    .to(BulbController);
 
   containerToInit
     .bind<Map<string, Socket>>(injectables.SocketList)

@@ -10,5 +10,6 @@ export const injectables = {
   controllers: {
     UserController: Symbol.for("UserController"),
     DeviceController: Symbol.for("DeviceController"),
+    BulbController: Symbol.for("BulbController"),
   },
 };
