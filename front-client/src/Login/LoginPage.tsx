@@ -26,7 +26,7 @@ export const LoginPage: FC<{}> = () => {
         setSubmitError(undefined);
         const token = await apiService.login(values.username, values.password);
 
-        setToken(token);
+        await setToken(token);
         navigate(routePaths.home);
       } catch (err) {
         if (err instanceof Error) {

@@ -2,7 +2,7 @@ import { Socket } from "socket.io-client";
 import autoBind from "auto-bind";
 import { Logger } from "../Logger/Logger";
 import { YeelightService } from "../Yeelight/Yeelight.service";
-import { Yeelight } from "../Yeelight/__types__/Yeelight";
+import { Yeelight, YeelightWithStatus } from "../Yeelight/__types__/Yeelight";
 import { SocketEvent } from "./__types__/SocketEvents";
 import { ValidationError } from "../Yeelight/Errors/Validation.error.js";
 import { BulbNotFoundError } from "../Yeelight/Errors/BulbNotFound.error.js";
@@ -17,6 +17,7 @@ import { TransitionModeEnum } from "../Yeelight/__types__/TransitionMode.enum";
 import { disconnect } from "process";
 import { inspect } from "util";
 import { GetBulbsDtoResponse } from "./dtos/GetBulbs.dto";
+import { encodeBase64 } from "../helpers/encodeBase64.js";
 
 type SocketEventObject = [name: SocketEvent, handler: SocketEventObjectHandler];
 
@@ -84,9 +85,14 @@ export class SocketController {
     cb?: SocketEventObjectHandlerCallback,
   ): Promise<void> {
     try {
+      const loggerAction = this._logger.beginAction(
+        `Getting bulb info ${bulbId}`,
+      );
       const bulbData = await this.getBulb(bulbId);
       const { location, port, ...bulb } = bulbData;
+
       cb?.(undefined, bulb);
+      this._logger.endAction(loggerAction);
     } catch (err) {
       cb?.(err instanceof Error ? err.message : "Unknown error");
     }
@@ -99,6 +105,9 @@ export class SocketController {
     console.log(`executing ${inspect(payload)}`);
     try {
       const bulbData = await this.getBulb(payload.bulbId);
+      if (!bulbData.status) {
+        throw new Error("bulb is offline");
+      }
       if (
         !payload.command ||
         !Object.values(AvailableCommands).includes(payload.command)
@@ -161,14 +170,17 @@ export class SocketController {
 
       case AvailableCommands.SET_NAME:
         const [name] = commandPayload.params;
+        const b64Name = encodeBase64(name);
 
-        return this._yeelightService.setName(bulb, name);
+        return this._yeelightService.setName(bulb, b64Name);
 
       case AvailableCommands.SET_POWER:
         const [power, powerEffectRaw] = commandPayload.params;
         const powerEffect =
           this.mapPayloadEffectToTransitionEffect(powerEffectRaw);
-
+        this._logger.log(
+          `Setting ${bulb.id} power with params ${commandPayload.params}`,
+        );
         return this._yeelightService.setPower(bulb, power, powerEffect);
       case AvailableCommands.SET_RGB:
         const [rgbRed, rgbGreen, rgbBlue, rgbLightness, rgbEffectRaw] =
@@ -191,11 +203,14 @@ export class SocketController {
     }
   }
 
-  private async getBulb(bulbId: string | undefined): Promise<Yeelight> {
+  private async getBulb(
+    bulbId: string | undefined,
+  ): Promise<YeelightWithStatus> {
     if (!bulbId) {
       throw new ValidationError("bulbid", "defined");
     }
     const bulbData = await this._yeelightService.findBulbById(bulbId);
+    console.log("BD", bulbData);
     if (!bulbData) {
       throw new BulbNotFoundError(bulbId);
     }

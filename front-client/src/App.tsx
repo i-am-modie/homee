@@ -1,6 +1,6 @@
 import "./App.css";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, useNavigate } from "react-router-dom";
 import { createBrowserHistory } from "history";
 import { routePaths } from "./constants/routePaths";
 import { LoginPage } from "./Login/LoginPage";
@@ -13,6 +13,9 @@ import { WebsiteWrapper } from "./components/WebsiteWrapper";
 import { UserContext, UserReactContext } from "./contexts/UserContext";
 import { Logout } from "./Logout/Logout";
 import { DevicesPage } from "./DevicesPage/DevicesPage";
+import { RenameBulbPage } from "./Bulb/RenameBulbPage";
+import { RemoveBulb } from "./Bulb/RemoveBulb";
+import { BulbControlWrapper } from "./Bulb/Control/BulbControlWrapper";
 
 function App() {
   const [token, setTokenState] = useState<string | undefined>(
@@ -20,12 +23,22 @@ function App() {
   );
   const [user, setUser] = useState<UserContext | undefined>();
   const [loading, setLoading] = useState<boolean>(true);
-  const apiServiceInstance = useMemo(() => new ApiService(undefined), []);
+  const navigate = useNavigate();
+
+  const [apiServiceInstance] = useState(
+    () => new ApiService(token, () => navigate(routePaths.logout))
+  );
+
+  useEffect(() => {
+    apiServiceInstance.updateToken(token);
+  }, [token, apiServiceInstance]);
+  useEffect(() => {
+    apiServiceInstance.updateLogout(() => navigate(routePaths.logout));
+  }, [apiServiceInstance, navigate]);
 
   useEffect(() => {
     setLoading(true);
     (async () => {
-      apiServiceInstance.updateToken(token);
       if (token) {
         const userData = await apiServiceInstance.me();
         setUser({
@@ -39,8 +52,8 @@ function App() {
 
   const setToken = useCallback(
     async (tokenToSet: string | undefined) => {
-      apiServiceInstance.updateToken(tokenToSet);
       if (tokenToSet) {
+        apiServiceInstance.updateToken(tokenToSet);
         const userData = await apiServiceInstance.me();
         setUser({
           userId: userData.userId,
@@ -65,34 +78,42 @@ function App() {
     >
       <ApiServiceReactContext.Provider value={apiServiceInstance}>
         <UserReactContext.Provider value={user}>
-          <BrowserRouter>
-            <div className="App">
-              <Routes>
+          <div className="App">
+            <Routes>
+              <Route path={routePaths.login} element={<LoginPage />} />
+              <Route
+                path={routePaths.register}
+                element={<RegistrationPage />}
+              />
+              <Route path={routePaths.logout} element={<Logout />} />
+              <Route path="/" element={<WebsiteWrapper loading={loading} />}>
                 <Route path={routePaths.login} element={<LoginPage />} />
                 <Route
-                  path={routePaths.register}
-                  element={<RegistrationPage />}
+                  path={routePaths.bulbs.changeName}
+                  element={<RenameBulbPage />}
                 />
-                <Route path={routePaths.logout} element={<Logout />} />
-                <Route path="/" element={<WebsiteWrapper loading={loading} />}>
-                  <Route path={routePaths.login} element={<LoginPage />} />
+                <Route
+                  path={routePaths.bulbs.remove}
+                  element={<RemoveBulb />}
+                />
+                <Route
+                  path={routePaths.bulbs.control.main}
+                  element={<BulbControlWrapper />}
+                >
                   <Route
-                    path={routePaths.register}
-                    element={<RegistrationPage />}
-                  />
-                  <Route
-                    path={routePaths.devices}
-                    element={<DevicesPage />}
-                  />
-                  <Route
-                    index={undefined}
-                    path={routePaths.home}
+                    path={routePaths.bulbs.control.main}
                     element={<div>asdasdasdas</div>}
                   />
                 </Route>
-              </Routes>
-            </div>
-          </BrowserRouter>
+                <Route path={routePaths.devices} element={<DevicesPage />} />
+                <Route
+                  index={undefined}
+                  path={routePaths.home}
+                  element={<div>asdasdasdas</div>}
+                />
+              </Route>
+            </Routes>
+          </div>
         </UserReactContext.Provider>
       </ApiServiceReactContext.Provider>
     </TokenReactContext.Provider>

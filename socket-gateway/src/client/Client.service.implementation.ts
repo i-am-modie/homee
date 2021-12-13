@@ -2,10 +2,12 @@ import { rejects } from "assert";
 import { inject, injectable } from "inversify";
 import { resolve } from "path";
 import { Server, Socket } from "socket.io";
+import { GetBulbDtoResponse } from "../../client-dto/GetBulb.dto";
 import { GetBulbsDtoResponse } from "../../client-dto/GetBulbs.dto";
 import { SocketEvents } from "../../client-dto/SocketEvents.enum";
 import { injectables } from "../ioc/injectables";
-import { Bulb } from "../models/Bulb";
+import { AvailableCommands } from "../models/AvailableCommands";
+import { Bulb, BulbWithStatus } from "../models/Bulb";
 import { ClientService } from "./Client.service";
 
 @injectable()
@@ -15,13 +17,84 @@ export class ClientServiceImplementation implements ClientService {
     @inject(injectables.SocketList)
     private readonly socketList: Map<string, Socket>
   ) {}
+  setBulbBrightness(
+    roomId: string,
+    bulbId: string,
+    brightness: number
+  ): Promise<void> {
+    const deviceSocket = this.getDeviceSocket(roomId);
+
+    return new Promise((resolve, rejects) => {
+      deviceSocket.emit(
+        SocketEvents.EXECUTE_COMMAND,
+        {
+          command: AvailableCommands.SET_BRIGHT,
+          bulbId,
+          params: [brightness],
+        },
+        (err: Error, bulbs: GetBulbsDtoResponse) => {
+          if (err) {
+            rejects(err);
+          }
+
+          resolve();
+        }
+      );
+    });
+  }
+  public setBulbPower(
+    roomId: string,
+    bulbId: string,
+    on: boolean
+  ): Promise<void> {
+    const deviceSocket = this.getDeviceSocket(roomId);
+
+    return new Promise((resolve, rejects) => {
+      deviceSocket.emit(
+        SocketEvents.EXECUTE_COMMAND,
+        {
+          command: AvailableCommands.SET_POWER,
+          bulbId,
+          params: [on],
+        },
+        (err: Error, bulbs: GetBulbsDtoResponse) => {
+          if (err) {
+            rejects(err);
+          }
+
+          resolve();
+        }
+      );
+    });
+  }
+  public renameBulb(
+    roomId: string,
+    bulbId: string,
+    name: string
+  ): Promise<void> {
+    const deviceSocket = this.getDeviceSocket(roomId);
+    return new Promise((resolve, rejects) => {
+      deviceSocket.emit(
+        SocketEvents.EXECUTE_COMMAND,
+        {
+          command: AvailableCommands.SET_NAME,
+          bulbId,
+          params: [name],
+        },
+        (err: Error, bulbs: GetBulbsDtoResponse) => {
+          if (err) {
+            rejects(err);
+          }
+
+          resolve();
+        }
+      );
+    });
+  }
 
   public getBulbs(roomId: string): Promise<Bulb[]> {
     console.log(`getting bulbs for ${roomId}`);
-    const deviceSocket = this.socketList.get(roomId);
-    if (!deviceSocket) {
-      throw new Error("no connection");
-    }
+    const deviceSocket = this.getDeviceSocket(roomId);
     return new Promise((resolve, rejects) => {
       deviceSocket.emit(
         SocketEvents.GET_BULBS,
@@ -35,5 +108,35 @@ export class ClientServiceImplementation implements ClientService {
         }
       );
     });
+  }
+
+  public getBulb(roomId: string, bulbId: string): Promise<BulbWithStatus> {
+    console.log(`getting bulb status for ${bulbId}`);
+    const deviceSocket = this.getDeviceSocket(roomId);
+    return new Promise((resolve, rejects) => {
+      deviceSocket.emit(
+        SocketEvents.GET_BULB,
+        {
+          bulbId,
+        },
+        (err: Error, bulb: GetBulbDtoResponse) => {
+          console.log("got response");
+          if (err) {
+            rejects(err);
+          }
+          console.log(bulb);
+
+          resolve({ ...bulb, colorMode: Number(bulb.colorMode) });
+        }
+      );
+    });
+  }
+
+  private getDeviceSocket(roomId: string) {
+    const deviceSocket = this.socketList.get(roomId);
+    if (!deviceSocket) {
+      throw new Error("no connection");
+    }
+    return deviceSocket;
   }
 }

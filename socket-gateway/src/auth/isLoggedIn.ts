@@ -10,6 +10,6 @@ export const isLoggedIn =
       (req as any).user = decodedToken;
       return next();
     } catch (err) {
-      res.status(400).send(err);
+      res.status(401).send(err);
     }
   };

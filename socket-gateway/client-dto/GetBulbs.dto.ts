@@ -15,4 +15,6 @@ export interface GetBulbsDtoResponseBulb {
   hue: number;
   sat: number;
   ct: number;
+  power: boolean;
+  bright: number;
 }

@@ -64,12 +64,15 @@ export class YeelightConnectionServiceImplementation
     let connection: net.Socket;
 
     try {
+      console.log("1");
       connection = await this.openTCPConnection(target);
       const responses = [];
+      console.log("2");
 
       for (const command of commandsWithIds) {
         responses.push(await this.executeCommand(connection, command));
       }
+      console.log("3");
 
       return this.mapCommandsAndResponsesToResults(commandsWithIds, responses);
       this._logger.endAction(actionLog);
@@ -85,8 +88,17 @@ export class YeelightConnectionServiceImplementation
       const client = new net.Socket();
       try {
         const connection = client.connect(target.port, target.location);
-        client.on("connect", () => resolve(connection));
-        client.on("error", (err) => rejects(err));
+        const timeout = setTimeout(() => {
+          rejects("timeout");
+        }, 5000);
+        client.on("connect", () => {
+          clearTimeout(timeout);
+          resolve(connection);
+        });
+        client.on("error", (err) => {
+          clearTimeout(timeout);
+          rejects(err);
+        });
       } catch (err) {
         client.destroy();
         rejects(err);
@@ -126,19 +138,21 @@ export class YeelightConnectionServiceImplementation
           const responseString: string = data.toString();
           const response: YeelightRequestResponse = JSON.parse(responseString);
           if (response.error) {
+            console.log("!", response);
             this._logger.error(
-              `Command ${
-                command.id
-              } failed to execute with error ${response && response.error && response.error?.join?.(" ")}`,
+              `Command ${command.id} failed to execute with error ${
+                response && response.error && response.error?.join?.(" ")
+              }`,
             );
             return reject(response);
           }
           this._logger.endAction(
             commandLogAction,
-            `[${response.result.join(",")}]`,
+            `[${response.result?.join(",")}]`,
           );
           return resolve(response);
         } catch (err) {
+          console.log("@", err);
           this._logger.error(
             `Command ${command.id} failed to execute with error ${err}`,
           );

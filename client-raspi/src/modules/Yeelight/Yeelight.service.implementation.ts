@@ -13,9 +13,9 @@ import { yeelightServiceEvents } from "./yeelightServiceEvents.js";
 import { RGB } from "./__types__/RGB.js";
 import { TransitionEffect } from "./__types__/TransitionEffect.js";
 import { TransitionModeEnum } from "./__types__/TransitionMode.enum.js";
-import { Yeelight } from "./__types__/Yeelight.js";
+import { Yeelight, YeelightWithStatus } from "./__types__/Yeelight.js";
 import { YeelightMode } from "./__types__/YeelightMode.enum.js";
-import {truthy} from "../helpers/truthyfilter.js"
+import { truthy } from "../helpers/truthyfilter.js";
 import { inspect } from "util";
 
 export class YeelightServiceImplementation
@@ -33,7 +33,7 @@ export class YeelightServiceImplementation
   public async getAllBulbs(): Promise<Array<Yeelight>> {
     const bulbs = this._yeelightRepository.getYeelights();
     return (
-      await Promise.all(
+      await Promise.allSettled(
         bulbs.map(async (bulb) => {
           try {
             return await this.getState(bulb);
@@ -42,7 +42,14 @@ export class YeelightServiceImplementation
           }
         }),
       )
-    ).filter(truthy);
+    )
+      .map((promise) => {
+        if (promise.status === "fulfilled") {
+          return promise.value!;
+        }
+        return undefined;
+      })
+      .filter(truthy);
   }
 
   public initializeSearcher() {
@@ -65,8 +72,25 @@ export class YeelightServiceImplementation
     return this._yeelightRepository.upsertBulb(bulb);
   }
 
-  public findBulbById(id: string): Yeelight | undefined {
-    return this._yeelightRepository.findBulbById(id);
+  public async findBulbById(
+    id: string,
+  ): Promise<YeelightWithStatus | undefined> {
+    try {
+      console.log("goting bulb", id);
+      const bulb = await this.getState(id);
+      console.log("got bulb", bulb);
+      return { ...bulb, status: true };
+    } catch (err) {
+      const bulbFromDb = await this._yeelightRepository.findBulbById(id);
+      if (!bulbFromDb) {
+        return undefined;
+      }
+      return {
+        ...bulbFromDb,
+        power: false,
+        status: false,
+      };
+    }
   }
 
   public async setName(
@@ -229,7 +253,16 @@ export class YeelightServiceImplementation
 
   public async getState(bulbOrItsId: Yeelight | string): Promise<Yeelight> {
     const bulb = this.getBulb(bulbOrItsId);
-    const params = ["color_mode", "ct", "hue", "rgb", "sat", "name"];
+    const params = [
+      "color_mode",
+      "ct",
+      "hue",
+      "rgb",
+      "sat",
+      "name",
+      "power",
+      "bright",
+    ];
 
     const [{ response }] =
       await this._yeelightConnectionService.executeCommands(bulb, [
@@ -250,7 +283,9 @@ export class YeelightServiceImplementation
       rgb: response[3],
       sat: Number(response[4]),
       name: decodeBase64(response[5]),
+      power: response?.[6] === "on",
       available_actions: bulb.available_actions,
+      bright: Number(response?.[7]),
     };
   }
 

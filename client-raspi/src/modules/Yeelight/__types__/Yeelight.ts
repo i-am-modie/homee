@@ -9,8 +9,13 @@ export interface Yeelight {
   model: YeelightModel;
   colorMode: YeelightMode;
   available_actions: string[];
+  power: boolean;
   rgb: string;
   hue: number;
   sat: number;
   ct: number;
+  bright: number;
+}
+export interface YeelightWithStatus extends Yeelight {
+  status: boolean;
 }

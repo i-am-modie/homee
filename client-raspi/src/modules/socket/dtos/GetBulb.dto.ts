@@ -16,4 +16,5 @@ export interface GetBulbDtoResponse {
   hue: number;
   sat: number;
   ct: number;
+  power: boolean;
 }

@@ -2,11 +2,11 @@ import { AvailableCommands } from "../../models/AvailableCommands";
 import { YeelightMode } from "../../models/YeelightMode.enum";
 import { YeelightModel } from "../../models/YeelightModel.enum";
 
-export interface RefetchBulbsResponseBodyDto {
-  bulbs: RefetchBulbsBulbsResponseBodyDto[];
+export interface GetBulbsResponseBodyDto {
+  bulbs: GetBulbsBulbsResponseBodyDto[];
 }
 
-export interface RefetchBulbsBulbsResponseBodyDto {
+export interface GetBulbsBulbsResponseBodyDto {
   id: string;
   name?: string;
   model: YeelightModel;
@@ -16,4 +16,6 @@ export interface RefetchBulbsBulbsResponseBodyDto {
   hue: number;
   sat: number;
   ct: number;
+  power: boolean;
+  bright: number;
 }

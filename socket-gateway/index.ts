@@ -4,6 +4,8 @@ import express from "express";
 import http from "http";
 import "reflect-metadata";
 import { Server, Socket } from "socket.io";
+import { AvailableCommands } from "./client-dto/AvailableCommands";
+import { ExecuteCommandPayload } from "./client-dto/ExecuteCommand.dto";
 import { registerControllers } from "./src/helpers/registerControllers";
 import { initContainer } from "./src/ioc/init";
 import { injectables } from "./src/ioc/injectables";
@@ -60,7 +62,7 @@ io.on("connection", async (socket) => {
   //     }
   //   }
   // );
-  // setInterval(()=>{
+  // setInterval(() => {
   //   socket.emit(
   //     "executeCommand",
   //     {
@@ -75,8 +77,8 @@ io.on("connection", async (socket) => {
   //         console.log("sucess", data);
   //       }
   //     }
-  //     );
-  //   }, 500)
+  //   );
+  // }, 500);
   // setInterval(() => {
   //   socket.emit("getBulbs", (data: any) => console.log(data));
   // }, 5000);

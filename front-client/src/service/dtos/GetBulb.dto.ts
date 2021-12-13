@@ -1,9 +1,7 @@
-export interface RefetchBulbsResponseBodyDto {
-  bulbs: RefetchBulbsBulbsResponseBodyDto[];
-}
-
-export interface RefetchBulbsBulbsResponseBodyDto {
+export interface GetBulbResponseBodyDto {
   id: string;
+  status: boolean;
+  power: boolean;
   name?: string;
   model: string;
   colorMode: number;
@@ -12,4 +10,5 @@ export interface RefetchBulbsBulbsResponseBodyDto {
   hue: number;
   sat: number;
   ct: number;
+  bright: number;
 }

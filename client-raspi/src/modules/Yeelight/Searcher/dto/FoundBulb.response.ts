@@ -69,5 +69,7 @@ export const mapFoundBulbResponseDTOToYeelightModel = (
     sat: Number(dto.SAT),
     name: dto.NAME && decodeBase64(dto.NAME),
     available_actions,
+    power: dto.POWER === FoundBulbResponsePowerState.ON,
+    bright: Number(dto.BRIGHT),
   };
 };

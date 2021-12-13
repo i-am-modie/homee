@@ -37,6 +37,7 @@ model Bulb {
   hue               Int
   sat               Int
   ct                Int
+  bright            Int
 }
 
 model Token {

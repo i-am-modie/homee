@@ -12,4 +12,10 @@ export interface Bulb {
   hue: number;
   sat: number;
   ct: number;
+  power: boolean;
+  bright: number;
+}
+
+export interface BulbWithStatus extends Bulb {
+  status: boolean;
 }

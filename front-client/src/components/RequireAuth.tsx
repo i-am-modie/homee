@@ -18,5 +18,9 @@ export const RequireAuth: FC<RequireAuthProps> = ({ children, loading }) => {
     }
   });
 
+  if (!token) {
+    return null;
+  }
+
   return <>{children}</> || null;
 };

@@ -1,28 +1,58 @@
 import autoBind from "auto-bind";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { config } from "../constants/config";
 import { MeResponseBodyDto } from "./dtos/Me.dto";
-import { RefetchBulbsResponseBodyDto } from "./dtos/RefetchBulbs.dto";
+import { GetBulbsResponseBodyDto } from "./dtos/GetBulbs.dto";
 import { RegenerateDeviceTokenResponseBodyDto } from "./dtos/RegenerateDeviceToken.dto";
+import { GetBulbResponseBodyDto } from "./dtos/GetBulb.dto";
 
-export type RestMethod = "GET" | "POST";
+export type RestMethod = "GET" | "POST" | "PATCH" | "DELETE";
 export class ApiService {
   private token: string | undefined;
+  private logout: () => void;
 
-  constructor(token: string | undefined) {
+  constructor(token: string | undefined, logout: () => void) {
     this.token = token;
+    this.logout = logout;
     autoBind(this);
   }
 
   public updateToken(token: string | undefined) {
     this.token = token;
   }
+  public updateLogout(logout: () => void) {
+    this.logout = logout;
+  }
 
-  public refetchBulbs(): Promise<RefetchBulbsResponseBodyDto> {
-    return this.callApiWithAuthorization<RefetchBulbsResponseBodyDto>(
+  public getBulbs(): Promise<GetBulbsResponseBodyDto> {
+    return this.callApiWithAuthorization<GetBulbsResponseBodyDto>(
       "GET",
       "/bulbs",
       {}
+    );
+  }
+
+  public getBulb(bulbId: string): Promise<GetBulbResponseBodyDto> {
+    return this.callApiWithAuthorization<GetBulbResponseBodyDto>(
+      "GET",
+      `/bulbs/${bulbId}`,
+      {}
+    );
+  }
+
+  public setBulbPower(bulbId: string, power: boolean): Promise<{}> {
+    return this.callApiWithAuthorization<{}>("POST", `/bulbs/${bulbId}/power`, {
+      power,
+    });
+  }
+
+  public setBulbBrightness(bulbId: string, brightness: number): Promise<{}> {
+    return this.callApiWithAuthorization<{}>(
+      "POST",
+      `/bulbs/${bulbId}/brightness`,
+      {
+        brightness,
+      }
     );
   }
 
@@ -56,6 +86,18 @@ export class ApiService {
     );
   }
 
+  public renameBulb(bulbId: string, newName: string): Promise<{}> {
+    return this.callApiWithAuthorization<{}, { name: string }>(
+      "PATCH",
+      `/bulbs/${bulbId}/name`,
+      { name: newName }
+    );
+  }
+
+  public deleteBulb(bulbId: string): Promise<{}> {
+    return this.callApiWithAuthorization("DELETE", `/bulbs/${bulbId}`, {});
+  }
+
   private async callApi<TResponseBody extends {}, TReqBody = {}>(
     method: RestMethod,
     path: string,
@@ -86,8 +128,15 @@ export class ApiService {
       method,
       data: body,
       headers: { authorization: `Bearer ${this.token}` },
+    }).catch((err: AxiosError) => {
+      if (err?.response?.status === 401) {
+        this.logout();
+        throw err;
+      }
+
+      throw err;
     });
-    return response.data;
+    return response!.data;
   }
 
   private getUrl(path: string) {

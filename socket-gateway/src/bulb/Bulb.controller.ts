@@ -8,13 +8,13 @@ import { LoggedRequest } from "../auth/LoggedRequest";
 import { ClientService } from "../client/Client.service";
 import { injectables } from "../ioc/injectables";
 import { JWTHelper } from "../jwt/JWTHelper";
-import { Bulb } from "../models/Bulb";
+import { AvailableCommands } from "../models/AvailableCommands";
+import { Bulb, BulbWithStatus } from "../models/Bulb";
 import { YeelightMode } from "../models/YeelightMode.enum";
 import { YeelightModel } from "../models/YeelightModel.enum";
 import { SocketHelpers } from "../socket/SocketHelpers";
-import {
-  RefetchBulbsResponseBodyDto
-} from "./dtos/RefetchBulbs.dto";
+import { GetBulbResponseBodyDto } from "./dtos/GetBulb.dto";
+import { GetBulbsResponseBodyDto } from "./dtos/GetBulbs.dto";
 
 @injectable()
 export class BulbController {
@@ -36,13 +36,43 @@ export class BulbController {
     http.get(
       this.prefixedUrl("/"),
       isLoggedIn(this.JWTHelper),
-      this.handleRefetchDevices
+      this.handleGetDevices
+    );
+
+    http.get(
+      this.prefixedUrl("/:id"),
+      isLoggedIn(this.JWTHelper),
+      this.handleGetDevice
+    );
+
+    http.patch(
+      this.prefixedUrl("/:id/name"),
+      isLoggedIn(this.JWTHelper),
+      this.handleNameChange
+    );
+
+    http.post(
+      this.prefixedUrl("/:id/power"),
+      isLoggedIn(this.JWTHelper),
+      this.handleSwitchPower
+    );
+
+    http.post(
+      this.prefixedUrl("/:id/brightness"),
+      isLoggedIn(this.JWTHelper),
+      this.handleSetBright
+    );
+
+    http.delete(
+      this.prefixedUrl("/:id"),
+      isLoggedIn(this.JWTHelper),
+      this.handleRemoveBulb
     );
   }
 
-  private async handleRefetchDevices(
+  private async handleGetDevices(
     req: Request,
-    res: Response<RefetchBulbsResponseBodyDto | string>
+    res: Response<GetBulbsResponseBodyDto | string>
   ) {
     const loggedReq = req as LoggedRequest;
     const userId = loggedReq.user.userId;
@@ -53,9 +83,10 @@ export class BulbController {
       }
 
       const fetchedBulbs: Bulb[] = await this.clientService.getBulbs(room.room);
+      console.log("fb", fetchedBulbs);
 
       await Promise.all(
-        fetchedBulbs.map(async (bulb) => {
+        fetchedBulbs.map(async ({ power, ...bulb }) => {
           console.log(JSON.stringify(bulb.available_actions).length);
           return this.db.bulb.upsert({
             where: {
@@ -89,12 +120,223 @@ export class BulbController {
           colorMode: bulb.colorMode as YeelightMode,
           model: bulb.model as YeelightModel,
           available_actions: JSON.parse(bulb.available_actions),
+          power:
+            fetchedBulbs.find((fbulb) => fbulb.id === bulb.id)?.power || false,
         })),
       });
     } catch (err) {
       console.log(err);
       res.status(500).send("Server error occured");
     }
+  }
+
+  private async handleGetDevice(
+    req: Request,
+    res: Response<GetBulbResponseBodyDto | string>
+  ) {
+    const loggedReq = req as LoggedRequest<{}, { id?: string }>;
+    const userId = loggedReq.user.userId;
+    const bulbId = loggedReq.params.id;
+    try {
+      const room = await this.db.room.findUnique({ where: { userId } });
+      if (!room) {
+        return res.status(404);
+      }
+      if (!bulbId) {
+        return res.status(400);
+      }
+
+      const bulb = await this.db.bulb.findFirst({
+        where: {
+          id: bulbId,
+          userId,
+        },
+      });
+
+      if (!bulb) {
+        return res.status(404);
+      }
+
+      const fetchedBulb = await this.clientService.getBulb(room.room, bulbId);
+
+      if (!fetchedBulb) {
+        return res.send({
+          ...bulb,
+          name: bulb.name || "",
+          model: bulb.model as YeelightModel,
+          available_actions: bulb.available_actions.split(
+            ","
+          ) as AvailableCommands[],
+          status: false,
+          power: false,
+        });
+      }
+      const { power, status, ...fetchedBulbWithoutState } = fetchedBulb;
+
+      await this.db.bulb.update({
+        where: {
+          id: bulbId,
+        },
+        data: {
+          ...fetchedBulbWithoutState,
+          available_actions: fetchedBulb.available_actions.join(","),
+        },
+      });
+
+      return res.send({
+        ...fetchedBulb,
+      });
+    } catch (err) {
+      console.log(err);
+      res.status(500).send("Server error occurred");
+    }
+  }
+
+  private async handleNameChange(
+    req: Request,
+    res: Response<GetBulbsResponseBodyDto | string>
+  ) {
+    const loggedReq = req as LoggedRequest;
+    const userId = loggedReq.user.userId;
+    try {
+      const room = await this.db.room.findUnique({ where: { userId } });
+      if (!room) {
+        return res.sendStatus(400);
+      }
+
+      const bulb = await this.db.bulb.findFirst({
+        where: {
+          userId,
+          id: req.params.id,
+        },
+      });
+      if (!bulb) {
+        return res.sendStatus(400);
+      }
+
+      await this.clientService.renameBulb(
+        room.room,
+        req.params.id,
+        req.body.name
+      );
+
+      return res.sendStatus(200);
+    } catch (err) {
+      console.log(err);
+      res.status(500).send("Server error occured");
+    }
+  }
+
+  private async handleSwitchPower(
+    req: Request,
+    res: Response<GetBulbsResponseBodyDto | string>
+  ) {
+    const loggedReq = req as LoggedRequest;
+    const userId = loggedReq.user.userId;
+    if (req.body.power === undefined || typeof req.body.power !== "boolean") {
+      return res.sendStatus(400);
+    }
+
+    try {
+      const room = await this.getRoomForUser(userId);
+      if (!room) {
+        return res.sendStatus(400);
+      }
+
+      const bulb = await this.getBulbForUser(userId, req.params.id);
+      if (!bulb) {
+        return res.sendStatus(400);
+      }
+
+      await this.clientService.setBulbPower(
+        room.room,
+        req.params.id,
+        req.body.power
+      );
+
+      return res.sendStatus(200);
+    } catch (err) {
+      console.log(err);
+      res.status(500).send("Server error occured");
+    }
+  }
+
+  private async handleSetBright(
+    req: Request,
+    res: Response<GetBulbsResponseBodyDto | string>
+  ) {
+    const loggedReq = req as LoggedRequest;
+    const userId = loggedReq.user.userId;
+    const brightness = req.body.brightness;
+
+    if (
+      brightness === undefined ||
+      typeof brightness !== "number" ||
+      brightness < 0 ||
+      brightness > 100
+    ) {
+      return res.sendStatus(400);
+    }
+
+    try {
+      const room = await this.getRoomForUser(userId);
+      if (!room) {
+        return res.sendStatus(400);
+      }
+
+      const bulb = await this.getBulbForUser(userId, req.params.id);
+      if (!bulb) {
+        return res.sendStatus(400);
+      }
+
+      await this.clientService.setBulbBrightness(
+        room.room,
+        req.params.id,
+        brightness
+      );
+
+      return res.sendStatus(200);
+    } catch (err) {
+      console.log(err);
+      res.status(500).send("Server error occured");
+    }
+  }
+
+  private async handleRemoveBulb(
+    req: Request,
+    res: Response<GetBulbsResponseBodyDto | string>
+  ) {
+    const loggedReq = req as LoggedRequest;
+    const userId = loggedReq.user.userId;
+    try {
+      const { count } = await this.db.bulb.deleteMany({
+        where: {
+          id: req.params.id,
+          userId,
+        },
+      });
+      if (!count) {
+        return res.sendStatus(404);
+      }
+
+      return res.sendStatus(200);
+    } catch (err) {
+      console.log(err);
+      res.status(500).send("Server error occured");
+    }
+  }
+
+  private getRoomForUser(userId: number) {
+    return this.db.room.findUnique({ where: { userId } });
+  }
+
+  private getBulbForUser(userId: number, bulbId: string) {
+    return this.db.bulb.findFirst({
+      where: {
+        userId,
+        id: bulbId,
+      },
+    });
   }
 
   private prefixedUrl(url: string): string {
