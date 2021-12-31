@@ -8,7 +8,13 @@ import {
 import { FC, useCallback, useEffect, useState } from "react";
 import { Logo } from "./atoms/Logo";
 import { OutletWrapper } from "./OutletWrapper";
-import { buildBulbsControlMain, buildChangeBulbNamePath, buildRemoveBulbPath, routePaths } from "../constants/routePaths";
+import {
+  buildBulbsControlMain,
+  buildChangeBulbNamePath,
+  buildRemoveBulbPath,
+  buildShareBulbPath,
+  routePaths,
+} from "../constants/routePaths";
 import { RequireAuth } from "./RequireAuth";
 import { useUser } from "../contexts/UserContext";
 import { Bulb } from "../Bulb/Bulb";
@@ -72,21 +78,29 @@ export const WebsiteWrapper: FC<WebsiteWrapperProps> = ({ loading }) => {
                         <Menu.SubMenu
                           key={bulb.id}
                           title={bulb.name || bulb.id}
-
                         >
                           <Menu.Item key={`${bulb.id}_control`}>
                             <Link to={buildBulbsControlMain(bulb.id)}>
                               Control
                             </Link>
                           </Menu.Item>
-                          <Menu.Item key={`${bulb.id}_cname`}>
-                            <Link to={buildChangeBulbNamePath(bulb.id)}>
-                              Rename
-                            </Link>
-                          </Menu.Item>
+                          {!bulb.isShared && (
+                            <Menu.Item key={`${bulb.id}_cname`}>
+                              <Link to={buildChangeBulbNamePath(bulb.id)}>
+                                Rename
+                              </Link>
+                            </Menu.Item>
+                          )}
+                          {!bulb.isShared && (
+                            <Menu.Item key={`${bulb.id}_share`}>
+                              <Link to={buildShareBulbPath(bulb.id)}>
+                                Share Bulb
+                              </Link>
+                            </Menu.Item>
+                          )}
                           <Menu.Item key={`${bulb.id}_remove`}>
-                          <Link to={buildRemoveBulbPath(bulb.id)}>
-                            Remove Bulb
+                            <Link to={buildRemoveBulbPath(bulb.id)}>
+                              Remove Bulb
                             </Link>
                           </Menu.Item>
                         </Menu.SubMenu>

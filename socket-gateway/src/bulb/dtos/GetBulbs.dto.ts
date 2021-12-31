@@ -18,4 +18,6 @@ export interface GetBulbsBulbsResponseBodyDto {
   ct: number;
   power: boolean;
   bright: number;
+  sharedWith: string[];
+  isShared: boolean;
 }

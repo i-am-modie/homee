@@ -116,6 +116,22 @@ export class ApiService {
     );
   }
 
+  public shareBulb(bulbId: string, username: string): Promise<{}> {
+    return this.callApiWithAuthorization<{}, { username: string }>(
+      "POST",
+      `/bulbs/${bulbId}/share`,
+      { username }
+    );
+  }
+
+  public unshareBulb(bulbId: string, username: string): Promise<{}> {
+    return this.callApiWithAuthorization<{}, { username: string }>(
+      "DELETE",
+      `/bulbs/${bulbId}/share`,
+      { username }
+    );
+  }
+
   public deleteBulb(bulbId: string): Promise<{}> {
     return this.callApiWithAuthorization("DELETE", `/bulbs/${bulbId}`, {});
   }

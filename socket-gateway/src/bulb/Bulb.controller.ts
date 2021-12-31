@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Bulb as BulbEntity } from "@prisma/client";
 import autoBind from "auto-bind";
 import { Express, Request, Response } from "express";
 import { inject, injectable } from "inversify";
@@ -14,7 +14,10 @@ import { YeelightMode } from "../models/YeelightMode.enum";
 import { YeelightModel } from "../models/YeelightModel.enum";
 import { SocketHelpers } from "../socket/SocketHelpers";
 import { GetBulbResponseBodyDto } from "./dtos/GetBulb.dto";
-import { GetBulbsResponseBodyDto } from "./dtos/GetBulbs.dto";
+import {
+  GetBulbsBulbsResponseBodyDto,
+  GetBulbsResponseBodyDto,
+} from "./dtos/GetBulbs.dto";
 
 @injectable()
 export class BulbController {
@@ -58,6 +61,18 @@ export class BulbController {
     );
 
     http.post(
+      this.prefixedUrl("/:id/share"),
+      isLoggedIn(this.JWTHelper),
+      this.shareBulb
+    );
+
+    http.delete(
+      this.prefixedUrl("/:id/share"),
+      isLoggedIn(this.JWTHelper),
+      this.unshareBulb
+    );
+
+    http.post(
       this.prefixedUrl("/:id/brightness"),
       isLoggedIn(this.JWTHelper),
       this.handleSetBright
@@ -90,11 +105,11 @@ export class BulbController {
     const userId = loggedReq.user.userId;
     try {
       const room = await this.db.room.findUnique({ where: { userId } });
-      if (!room) {
-        return res.send({ bulbs: [] });
+      let fetchedBulbs: Bulb[] = [];
+      if (room) {
+        fetchedBulbs = await this.clientService.getBulbs(room.room);
       }
 
-      const fetchedBulbs: Bulb[] = await this.clientService.getBulbs(room.room);
       console.log("fb", fetchedBulbs);
 
       await Promise.all(
@@ -119,19 +134,58 @@ export class BulbController {
         })
       );
 
-      const allBulbsFromDb = await this.db.bulb.findMany({
+      const allOwnedBulbsFromDb = await this.db.bulb.findMany({
         where: {
           userId,
         },
+        include: {
+          sharedWith: {
+            include: {
+              user: true,
+            },
+          },
+        },
       });
+
+      const allSharedBulbsFromDb = await this.db.sharedBulbs.findMany({
+        where: {
+          userId,
+        },
+        include: {
+          bulb: true,
+        },
+      });
+      console.log("asbfd", allSharedBulbsFromDb);
+
+      const allBulbsFromDb: Omit<GetBulbsBulbsResponseBodyDto, "power">[] = [
+        ...allOwnedBulbsFromDb.map<Omit<GetBulbsBulbsResponseBodyDto, "power">>(
+          (bulb) => ({
+            ...bulb,
+            name: bulb.name || undefined,
+            sharedWith: bulb.sharedWith.map((shared) => shared.user.username),
+            model: bulb.model as YeelightModel,
+            available_actions: JSON.parse(bulb.available_actions),
+            isShared: false,
+          })
+        ),
+        ...allSharedBulbsFromDb.map<
+          Omit<GetBulbsBulbsResponseBodyDto, "power">
+        >((bulb) => ({
+          ...bulb.bulb,
+          name: bulb.bulb.name || undefined,
+          sharedWith: [],
+          model: bulb.bulb.model as YeelightModel,
+          available_actions: bulb.bulb.available_actions.split(
+            ","
+          ) as AvailableCommands[],
+          isShared: true,
+        })),
+      ];
 
       return res.send({
         bulbs: allBulbsFromDb.map((bulb) => ({
           ...bulb,
-          name: bulb.name || undefined,
           colorMode: bulb.colorMode as YeelightMode,
-          model: bulb.model as YeelightModel,
-          available_actions: JSON.parse(bulb.available_actions),
           power:
             fetchedBulbs.find((fbulb) => fbulb.id === bulb.id)?.power || false,
         })),
@@ -150,27 +204,24 @@ export class BulbController {
     const userId = loggedReq.user.userId;
     const bulbId = loggedReq.params.id;
     try {
-      const room = await this.db.room.findUnique({ where: { userId } });
-      if (!room) {
-        return res.status(404);
-      }
       if (!bulbId) {
-        return res.status(400);
+        return res.sendStatus(400);
+      }
+      const room = await this.getRoomForUser(userId, bulbId);
+      if (!room) {
+        return res.sendStatus(404);
       }
 
-      const bulb = await this.db.bulb.findFirst({
-        where: {
-          id: bulbId,
-          userId,
-        },
-      });
+      const bulb = await this.getBulbForUser(userId, bulbId);
 
       if (!bulb) {
-        return res.status(404);
+        return res.sendStatus(404);
       }
 
+      console.log("getting bulb", room.room, bulbId);
       const fetchedBulb = await this.clientService.getBulb(room.room, bulbId);
 
+      console.log("got bulb", fetchedBulb);
       if (!fetchedBulb) {
         return res.send({
           ...bulb,
@@ -181,6 +232,11 @@ export class BulbController {
           ) as AvailableCommands[],
           status: false,
           power: false,
+          isShared: bulb.userId !== userId,
+          sharedWith:
+            bulb.userId !== userId
+              ? []
+              : bulb.sharedWith.map((shared) => shared.user.username),
         });
       }
       const { power, status, ...fetchedBulbWithoutState } = fetchedBulb;
@@ -197,11 +253,98 @@ export class BulbController {
 
       return res.send({
         ...fetchedBulb,
+        isShared: bulb.userId !== userId,
+        sharedWith:
+          bulb.userId !== userId
+            ? []
+            : bulb.sharedWith.map((shared) => shared.user.username),
       });
     } catch (err) {
       console.log(err);
       res.status(500).send("Server error occurred");
     }
+  }
+
+  private async shareBulb(
+    req: Request,
+    res: Response<GetBulbsResponseBodyDto | string>
+  ) {
+    const loggedReq = req as LoggedRequest;
+    const userId = loggedReq.user.userId;
+    const bulbId = req.params.id;
+    const usernameToShareTo = req.body.username;
+    if (!usernameToShareTo) {
+      return res.sendStatus(400);
+    }
+
+    const ownedBulb = await this.db.bulb.findFirst({
+      where: {
+        id: bulbId,
+        userId,
+      },
+    });
+
+    if (!ownedBulb) {
+      return res.sendStatus(404);
+    }
+
+    const userToShareTo = await this.db.user.findFirst({
+      where: { username: usernameToShareTo },
+    });
+
+    if (!userToShareTo) {
+      return res.sendStatus(404);
+    }
+
+    await this.db.sharedBulbs.create({
+      data: {
+        bulbId: ownedBulb.id,
+        userId: userToShareTo.userId,
+      },
+    });
+
+    return res.sendStatus(200);
+  }
+  private async unshareBulb(
+    req: Request,
+    res: Response<GetBulbsResponseBodyDto | string>
+  ) {
+    const loggedReq = req as LoggedRequest;
+    const userId = loggedReq.user.userId;
+    const bulbId = req.params.id;
+    const usernameToUnshare = req.body.username;
+    if (!usernameToUnshare) {
+      return res.sendStatus(400);
+    }
+
+    const ownedBulb = await this.db.bulb.findFirst({
+      where: {
+        id: bulbId,
+        userId,
+      },
+    });
+
+    if (!ownedBulb) {
+      return res.sendStatus(404);
+    }
+
+    const userToUnshare = await this.db.user.findFirst({
+      where: { username: usernameToUnshare },
+    });
+
+    if (!userToUnshare) {
+      return res.sendStatus(404);
+    }
+
+    await this.db.sharedBulbs.delete({
+      where: {
+        userId_bulbId: {
+          bulbId,
+          userId: userToUnshare.userId,
+        },
+      },
+    });
+    return res.sendStatus(200);
   }
 
   private async handleNameChange(
@@ -210,18 +353,15 @@ export class BulbController {
   ) {
     const loggedReq = req as LoggedRequest;
     const userId = loggedReq.user.userId;
+    const bulbId = req.params.id;
+
     try {
-      const room = await this.db.room.findUnique({ where: { userId } });
+      const room = await this.getRoomForUser(userId, bulbId);
       if (!room) {
         return res.sendStatus(400);
       }
 
-      const bulb = await this.db.bulb.findFirst({
-        where: {
-          userId,
-          id: req.params.id,
-        },
-      });
+      const bulb = await this.getBulbForUser(userId, bulbId);
       if (!bulb) {
         return res.sendStatus(400);
       }
@@ -250,7 +390,7 @@ export class BulbController {
     }
 
     try {
-      const room = await this.getRoomForUser(userId);
+      const room = await this.getRoomForUser(userId, req.params.id);
       if (!room) {
         return res.sendStatus(400);
       }
@@ -291,7 +431,7 @@ export class BulbController {
     }
 
     try {
-      const room = await this.getRoomForUser(userId);
+      const room = await this.getRoomForUser(userId, req.params.id);
       if (!room) {
         return res.sendStatus(400);
       }
@@ -341,7 +481,7 @@ export class BulbController {
     }
 
     try {
-      const room = await this.getRoomForUser(userId);
+      const room = await this.getRoomForUser(userId, req.params.id);
       if (!room) {
         return res.sendStatus(400);
       }
@@ -389,7 +529,7 @@ export class BulbController {
     }
 
     try {
-      const room = await this.getRoomForUser(userId);
+      const room = await this.getRoomForUser(userId, req.params.id);
       if (!room) {
         return res.sendStatus(400);
       }
@@ -427,7 +567,15 @@ export class BulbController {
         },
       });
       if (!count) {
-        return res.sendStatus(404);
+        const { count: countOfShared } = await this.db.sharedBulbs.deleteMany({
+          where: {
+            bulbId: req.params.id,
+            userId,
+          },
+        });
+        if (!countOfShared) {
+          return res.sendStatus(404);
+        }
       }
 
       return res.sendStatus(200);
@@ -437,17 +585,54 @@ export class BulbController {
     }
   }
 
-  private getRoomForUser(userId: number) {
-    return this.db.room.findUnique({ where: { userId } });
+  private async getRoomForUser(userId: number, bulbId: string) {
+    const bulb = await this.db.bulb.findFirst({
+      where: { id: bulbId },
+      include: { sharedWith: true },
+    });
+    if (!bulb) {
+      throw new Error("no bulb");
+    }
+    const bulbUsers = [bulb.userId, ...bulb.sharedWith.map((it) => it.userId)];
+    if (!bulbUsers.includes(userId)) {
+      throw new Error("no bulb");
+    }
+    return this.db.room.findUnique({ where: { userId: bulb.userId } });
   }
 
-  private getBulbForUser(userId: number, bulbId: string) {
-    return this.db.bulb.findFirst({
+  private async getBulbForUser(userId: number, bulbId: string) {
+    const ownedbulb = await this.db.bulb.findFirst({
       where: {
         userId,
         id: bulbId,
       },
+      include: {
+        sharedWith: {
+          include: { user: true },
+        },
+      },
     });
+    if (ownedbulb) {
+      return ownedbulb;
+    }
+
+    console.log("looking for bulb for", userId, bulbId);
+    const sharedBulb = await this.db.sharedBulbs.findFirst({
+      where: {
+        userId,
+        bulbId,
+      },
+      include: {
+        bulb: {
+          include: {
+            sharedWith: {
+              include: { user: true },
+            },
+          },
+        },
+      },
+    });
+    return sharedBulb?.bulb;
   }
 
   private prefixedUrl(url: string): string {

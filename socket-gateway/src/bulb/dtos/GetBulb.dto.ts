@@ -15,4 +15,6 @@ export interface GetBulbResponseBodyDto {
   status: boolean;
   power: boolean;
   bright: number;
+  sharedWith: string[],
+  isShared: boolean,
 }

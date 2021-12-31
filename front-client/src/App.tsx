@@ -17,6 +17,7 @@ import { RenameBulbPage } from "./Bulb/RenameBulbPage";
 import { RemoveBulb } from "./Bulb/RemoveBulb";
 import { BulbControlWrapper } from "./Bulb/Control/BulbControlWrapper";
 import { ColorPicker } from "./Bulb/Control/ColorPicker/ColorPicker";
+import { ShareBulbPage } from "./Bulb/ShareBulbPage";
 
 function App() {
   const [token, setTokenState] = useState<string | undefined>(
@@ -100,6 +101,10 @@ function App() {
                 <Route
                   path={routePaths.bulbs.control.main}
                   element={<BulbControlWrapper />}
+                ></Route>
+                <Route
+                  path={routePaths.bulbs.share}
+                  element={<ShareBulbPage />}
                 ></Route>
                 <Route path={routePaths.devices} element={<DevicesPage />} />
                 <Route

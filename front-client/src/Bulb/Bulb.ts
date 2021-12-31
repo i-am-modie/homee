@@ -9,6 +9,8 @@ export interface Bulb {
   sat: number;
   ct: number;
   bright: number;
+  sharedWith: string[];
+  isShared: boolean;
 }
 
 export interface BulbWithStatus extends Bulb {

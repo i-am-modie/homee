@@ -11,6 +11,7 @@ export const routePaths = {
     main: bulbsPrefix,
     changeName: `${bulbsPrefix}/:id/name`,
     remove: `${bulbsPrefix}/:id/remove`,
+    share: `${bulbsPrefix}/:id/share`,
     control: {
       main: bulbsControlPrefix,
       color: `${bulbsControlPrefix}/color`,
@@ -23,6 +24,9 @@ export const buildBulbsControlMain = (bulbId: string) =>
 
 export const buildChangeBulbNamePath = (bulbId: string) =>
   routePaths.bulbs.changeName.replace(":id", bulbId);
+
+export const buildShareBulbPath = (bulbId: string) =>
+  routePaths.bulbs.share.replace(":id", bulbId);
 
 export const buildRemoveBulbPath = (bulbId: string) =>
   routePaths.bulbs.remove.replace(":id", bulbId);
