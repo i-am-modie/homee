@@ -1,10 +1,13 @@
-import { FC, useCallback, useEffect, useState } from "react";
+import { FC, useCallback, useEffect, useMemo, useState } from "react";
 import { Outlet, useNavigate, useParams } from "react-router";
 import debounce from "lodash.debounce";
 import { useApiService } from "../../contexts/ApiServiceContext";
 import { BulbWithStatus } from "../Bulb";
 import { BulbReactContext } from "./contexts/BulbContext";
 import { YeelightStatus } from "./YeelightStatus/YeelightStatus";
+import { Card } from "antd";
+import { ColorPicker } from "./ColorPicker/ColorPicker";
+import { CTPicker } from "./CTPicker/CTPicker";
 
 export const BulbControlWrapper: FC = () => {
   const { id: bulbId } = useParams();
@@ -12,18 +15,37 @@ export const BulbControlWrapper: FC = () => {
   const apiService = useApiService();
 
   const [bulb, setBulb] = useState<BulbWithStatus>();
+  const [prevFetchedBulbId, setPrevFetchedBulbId] = useState<string>();
+  const [activeTabKey1, setActiveTabKey1] = useState("tab1");
+
+  const contentList = {
+    tab1: <ColorPicker />,
+    tab2: <CTPicker />,
+  };
+
+  const onTab1Change = (key: string) => {
+    setActiveTabKey1(key);
+  };
 
   const refetchBulb = useCallback(async () => {
     if (!bulbId) {
       return;
     }
-    const bulb = await apiService.getBulb(bulbId);
-    setBulb(bulb);
-  }, [bulbId, apiService]);
+    const fetchedBulb = await apiService.getBulb(bulbId);
+    if (!prevFetchedBulbId || prevFetchedBulbId !== bulbId) {
+      setActiveTabKey1(
+        fetchedBulb.colorMode === 1 || fetchedBulb.colorMode === 3
+          ? "tab1"
+          : "tab2"
+      );
+    }
+    setBulb(fetchedBulb);
+    setPrevFetchedBulbId(fetchedBulb.id);
+  }, [bulbId, apiService, prevFetchedBulbId]);
 
   useEffect(() => {
     refetchBulb();
-    const pooling = setInterval(() => refetchBulb(), 2000);
+    const pooling = setInterval(() => refetchBulb(), 5000);
 
     return () => clearInterval(pooling);
   }, [bulbId, refetchBulb]);
@@ -44,18 +66,17 @@ export const BulbControlWrapper: FC = () => {
   );
 
   const handleBrightChange = useCallback(
+    debounce(async (brightness: number) => {
+      if (!bulbId || !bulb) {
+        return;
+      }
 
-      debounce(async (brightness: number) =>{
-        if (!bulbId || !bulb) {
-          return;
-        }
-
-        setBulb((bulb) => ({
-          ...bulb!,
-          bright: brightness,
-        }));
-        await apiService.setBulbBrightness(bulbId, brightness);
-      }, 200),
+      setBulb((bulb) => ({
+        ...bulb!,
+        bright: brightness,
+      }));
+      await apiService.setBulbBrightness(bulbId, brightness);
+    }, 200),
     [bulbId, apiService, bulb, setBulb]
   );
 
@@ -72,7 +93,7 @@ export const BulbControlWrapper: FC = () => {
         setBulb,
       }}
     >
-      <div style={{ height: "50px" }}>
+      <div style={{ height: "100px" }}>
         <YeelightStatus
           loading={!bulb}
           available={!!(bulb && bulb.status)}
@@ -83,7 +104,25 @@ export const BulbControlWrapper: FC = () => {
           onBrightnessChange={handleBrightChange}
         />
       </div>
-      {bulb ? <Outlet /> : undefined}
+      <Card
+        style={{ width: "100%" }}
+        tabList={[
+          {
+            key: "tab1",
+            tab: "Color",
+          },
+          {
+            key: "tab2",
+            tab: "Color temperature",
+          },
+        ]}
+        activeTabKey={activeTabKey1}
+        onTabChange={(key) => {
+          onTab1Change(key);
+        }}
+      >
+        {(contentList as any)[activeTabKey1]}
+      </Card>
     </BulbReactContext.Provider>
   );
 };

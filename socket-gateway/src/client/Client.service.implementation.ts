@@ -17,7 +17,67 @@ export class ClientServiceImplementation implements ClientService {
     @inject(injectables.SocketList)
     private readonly socketList: Map<string, Socket>
   ) {}
-  setBulbBrightness(
+  public setBulbCT(roomId: string, bulbId: string, ct: number, lightness: number): Promise<void> {
+    const deviceSocket = this.getDeviceSocket(roomId);
+
+    return new Promise((resolve, rejects) => {
+      deviceSocket.emit(
+        SocketEvents.EXECUTE_COMMAND,
+        {
+          command: AvailableCommands.SET_CT,
+          bulbId,
+          params: [ct, lightness],
+        },
+        (err: Error, bulbs: GetBulbsDtoResponse) => {
+          const timeout = setTimeout(() => {
+            rejects("timeout");
+          }, 5000);
+          if (err) {
+            clearTimeout(timeout);
+            return rejects(err);
+          }
+
+          clearTimeout(timeout);
+          return resolve();
+        }
+      );
+    });
+  }
+  public setBulbRGB(
+    roomId: string,
+    bulbId: string,
+    red: number,
+    green: number,
+    blue: number,
+    lightness: number
+  ): Promise<void> {
+    const deviceSocket = this.getDeviceSocket(roomId);
+
+    return new Promise((resolve, rejects) => {
+      deviceSocket.emit(
+        SocketEvents.EXECUTE_COMMAND,
+        {
+          command: AvailableCommands.SET_RGB,
+          bulbId,
+          params: [red, green, blue, lightness],
+        },
+        (err: Error, bulbs: GetBulbsDtoResponse) => {
+          const timeout = setTimeout(() => {
+            rejects("timeout");
+          }, 5000);
+          if (err) {
+            clearTimeout(timeout);
+            return rejects(err);
+          }
+
+          clearTimeout(timeout);
+          return resolve();
+        }
+      );
+    });
+  }
+
+  public setBulbBrightness(
     roomId: string,
     bulbId: string,
     brightness: number

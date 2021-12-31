@@ -63,6 +63,18 @@ export class BulbController {
       this.handleSetBright
     );
 
+    http.post(
+      this.prefixedUrl("/:id/rgb"),
+      isLoggedIn(this.JWTHelper),
+      this.handleSetRGB
+    );
+
+    http.post(
+      this.prefixedUrl("/:id/ct"),
+      isLoggedIn(this.JWTHelper),
+      this.handleSetCT
+    );
+
     http.delete(
       this.prefixedUrl("/:id"),
       isLoggedIn(this.JWTHelper),
@@ -293,6 +305,105 @@ export class BulbController {
         room.room,
         req.params.id,
         brightness
+      );
+
+      return res.sendStatus(200);
+    } catch (err) {
+      console.log(err);
+      res.status(500).send("Server error occured");
+    }
+  }
+
+  private async handleSetRGB(
+    req: Request,
+    res: Response<GetBulbsResponseBodyDto | string>
+  ) {
+    const loggedReq = req as LoggedRequest;
+    const userId = loggedReq.user.userId;
+    const rgb = req.body.rgb;
+    const lightness = req.body.lightness;
+
+    if (
+      rgb === undefined ||
+      typeof rgb !== "number" ||
+      rgb < 0 ||
+      rgb > 16711680
+    ) {
+      return res.sendStatus(400);
+    }
+    if (
+      lightness === undefined ||
+      typeof lightness !== "number" ||
+      lightness < 0 ||
+      lightness > 100
+    ) {
+      return res.sendStatus(400);
+    }
+
+    try {
+      const room = await this.getRoomForUser(userId);
+      if (!room) {
+        return res.sendStatus(400);
+      }
+
+      const bulb = await this.getBulbForUser(userId, req.params.id);
+      if (!bulb) {
+        return res.sendStatus(400);
+      }
+
+      await this.clientService.setBulbRGB(
+        room.room,
+        req.params.id,
+        rgb >> 16,
+        (rgb >> 8) & 255,
+        rgb & 255,
+        lightness
+      );
+
+      return res.sendStatus(200);
+    } catch (err) {
+      console.log(err);
+      res.status(500).send("Server error occured");
+    }
+  }
+
+  private async handleSetCT(
+    req: Request,
+    res: Response<GetBulbsResponseBodyDto | string>
+  ) {
+    const loggedReq = req as LoggedRequest;
+    const userId = loggedReq.user.userId;
+    const ct = req.body.ct;
+    const lightness = req.body.lightness;
+
+    if (ct === undefined || typeof ct !== "number" || ct < 1700 || ct > 6500) {
+      return res.sendStatus(400);
+    }
+    if (
+      lightness === undefined ||
+      typeof lightness !== "number" ||
+      lightness < 0 ||
+      lightness > 100
+    ) {
+      return res.sendStatus(400);
+    }
+
+    try {
+      const room = await this.getRoomForUser(userId);
+      if (!room) {
+        return res.sendStatus(400);
+      }
+
+      const bulb = await this.getBulbForUser(userId, req.params.id);
+      if (!bulb) {
+        return res.sendStatus(400);
+      }
+
+      await this.clientService.setBulbCT(
+        room.room,
+        req.params.id,
+        ct,
+        lightness
       );
 
       return res.sendStatus(200);

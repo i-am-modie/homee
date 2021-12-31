@@ -56,6 +56,28 @@ export class ApiService {
     );
   }
 
+  public setBulbRGB(
+    bulbId: string,
+    rgb: number,
+    brightness: number
+  ): Promise<{}> {
+    return this.callApiWithAuthorization<{}>("POST", `/bulbs/${bulbId}/rgb`, {
+      lightness: brightness,
+      rgb,
+    });
+  }
+
+  public setBulbCT(
+    bulbId: string,
+    ct: number,
+    brightness: number
+  ): Promise<{}> {
+    return this.callApiWithAuthorization<{}>("POST", `/bulbs/${bulbId}/ct`, {
+      ct,
+      lightness: brightness,
+    });
+  }
+
   public login(username: string, password: string): Promise<string> {
     return this.callApi<string>("POST", "/users/login", {
       username,

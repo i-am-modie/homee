@@ -13,6 +13,7 @@ export const routePaths = {
     remove: `${bulbsPrefix}/:id/remove`,
     control: {
       main: bulbsControlPrefix,
+      color: `${bulbsControlPrefix}/color`,
     },
   },
 };

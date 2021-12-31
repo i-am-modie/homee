@@ -10,4 +10,18 @@ export interface ClientService {
     bulbId: string,
     brightness: number
   ): Promise<void>;
+  setBulbRGB(
+    roomId: string,
+    bulbId: string,
+    red: number,
+    green: number,
+    blue: number,
+    lightness: number
+  ): Promise<void>;
+  setBulbCT(
+    roomId: string,
+    bulbId: string,
+    ct: number,
+    lightness: number
+  ): Promise<void>;
 }

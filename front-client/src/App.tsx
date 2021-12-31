@@ -16,6 +16,7 @@ import { DevicesPage } from "./DevicesPage/DevicesPage";
 import { RenameBulbPage } from "./Bulb/RenameBulbPage";
 import { RemoveBulb } from "./Bulb/RemoveBulb";
 import { BulbControlWrapper } from "./Bulb/Control/BulbControlWrapper";
+import { ColorPicker } from "./Bulb/Control/ColorPicker/ColorPicker";
 
 function App() {
   const [token, setTokenState] = useState<string | undefined>(
@@ -99,17 +100,12 @@ function App() {
                 <Route
                   path={routePaths.bulbs.control.main}
                   element={<BulbControlWrapper />}
-                >
-                  <Route
-                    path={routePaths.bulbs.control.main}
-                    element={<div>asdasdasdas</div>}
-                  />
-                </Route>
+                ></Route>
                 <Route path={routePaths.devices} element={<DevicesPage />} />
                 <Route
                   index={undefined}
                   path={routePaths.home}
-                  element={<div>asdasdasdas</div>}
+                  element={<div>Welcome to Yeelight controlling App</div>}
                 />
               </Route>
             </Routes>
