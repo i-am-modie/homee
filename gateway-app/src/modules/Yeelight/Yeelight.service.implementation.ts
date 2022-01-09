@@ -76,9 +76,7 @@ export class YeelightServiceImplementation
     id: string,
   ): Promise<YeelightWithStatus | undefined> {
     try {
-      console.log("goting bulb", id);
       const bulb = await this.getState(id);
-      console.log("got bulb", bulb);
       return { ...bulb, status: true };
     } catch (err) {
       const bulbFromDb = await this._yeelightRepository.findBulbById(id);

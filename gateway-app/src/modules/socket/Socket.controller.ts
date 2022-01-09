@@ -50,18 +50,18 @@ export class SocketController {
     };
 
     Object.entries(socketEvents).forEach(([key, value]) => {
-      console.log(`Registering ${key}`);
+      this._logger.log(`Registering ${key}`);
       this._socket.on(key, value);
     });
 
     this._socket.on("disconnect", () => {
-      console.log("disconnected");
+      this._logger.log("disconnected");
     });
 
     this._socket.on("connect_error", (err) => {
-      console.log("connection erorr");
-      console.log(err instanceof Error); // true
-      console.log(err.message); // not authorized '
+      this._logger.log("connection erorr");
+      this._logger.log(err instanceof Error); // true
+      this._logger.log(err.message); // not authorized '
     });
   }
 
@@ -69,14 +69,14 @@ export class SocketController {
     payload: unknown,
     cb?: SocketEventObjectHandlerCallback,
   ): Promise<void> {
-    console.log("Refetching all bulbs");
+    this._logger.log("Refetching all bulbs");
     const bulbs: Yeelight[] = await this._yeelightService.getAllBulbs();
     const dto: GetBulbsDtoResponse = {
       bulbs: bulbs.map(({ location, port, ...bulb }) => ({
         ...bulb,
       })) as unknown as GetBulbsDtoResponse["bulbs"],
     };
-    console.log("got bulbs responding");
+    this._logger.log("got bulbs responding");
     cb?.(undefined, dto);
   }
 
@@ -102,7 +102,7 @@ export class SocketController {
     payload: Partial<ExecuteCommandPayload> = {},
     cb?: SocketEventObjectHandlerCallback,
   ) {
-    console.log(`executing ${inspect(payload)}`);
+    this._logger.log(`executing ${inspect(payload)}`);
     try {
       const bulbData = await this.getBulb(payload.bulbId);
       if (!bulbData.status) {
@@ -210,7 +210,6 @@ export class SocketController {
       throw new ValidationError("bulbid", "defined");
     }
     const bulbData = await this._yeelightService.findBulbById(bulbId);
-    console.log("BD", bulbData);
     if (!bulbData) {
       throw new BulbNotFoundError(bulbId);
     }

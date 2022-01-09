@@ -110,11 +110,9 @@ export class BulbController {
         fetchedBulbs = await this.clientService.getBulbs(room.room);
       }
 
-      console.log("fb", fetchedBulbs);
 
       await Promise.all(
         fetchedBulbs.map(async ({ power, ...bulb }) => {
-          console.log(JSON.stringify(bulb.available_actions));
           return this.db.bulb.upsert({
             where: {
               id: bulb.id,
@@ -155,7 +153,6 @@ export class BulbController {
           bulb: true,
         },
       });
-      console.log("asbfd", allSharedBulbsFromDb);
 
       const allBulbsFromDb: Omit<GetBulbsBulbsResponseBodyDto, "power">[] = [
         ...allOwnedBulbsFromDb.map<Omit<GetBulbsBulbsResponseBodyDto, "power">>(

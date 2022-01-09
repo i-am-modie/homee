@@ -64,15 +64,12 @@ export class YeelightConnectionServiceImplementation
     let connection: net.Socket;
 
     try {
-      console.log("1");
       connection = await this.openTCPConnection(target);
       const responses = [];
-      console.log("2");
 
       for (const command of commandsWithIds) {
         responses.push(await this.executeCommand(connection, command));
       }
-      console.log("3");
 
       return this.mapCommandsAndResponsesToResults(commandsWithIds, responses);
       this._logger.endAction(actionLog);
@@ -138,7 +135,6 @@ export class YeelightConnectionServiceImplementation
           const responseString: string = data.toString();
           const response: YeelightRequestResponse = JSON.parse(responseString);
           if (response.error) {
-            console.log("!", response);
             this._logger.error(
               `Command ${command.id} failed to execute with error ${
                 response && response.error && response.error?.join?.(" ")
@@ -152,7 +148,6 @@ export class YeelightConnectionServiceImplementation
           );
           return resolve(response);
         } catch (err) {
-          console.log("@", err);
           this._logger.error(
             `Command ${command.id} failed to execute with error ${err}`,
           );

@@ -40,48 +40,6 @@ io.use(socketAuthMiddleware);
 io.on("connection", async (socket) => {
   await initConnectionHandler(io, socket, prisma, socketsList);
 
-  socket.emit(
-    "getBulbs",
-    { bulbId: "0x0000000007e7a51b" },
-    (err?: string, data?: any) => {
-      if (err) {
-        console.log("error", err);
-      } else {
-        console.log("sucess", data);
-      }
-    }
-  );
-  // socket.emit(
-  //   "getBulb",
-  //   { bulbId: "0x0000000007e7a51b" },
-  //   (err?: string, data?: any) => {
-  //     if (err) {
-  //       console.log("error", err);
-  //     } else {
-  //       console.log("sucess", data);
-  //     }
-  //   }
-  // );
-  // setInterval(() => {
-  //   socket.emit(
-  //     "executeCommand",
-  //     {
-  //       bulbId: "0x0000000007e7a51b",
-  //       command: AvailableCommands.SET_HSV,
-  //       params: [Math.random() * 360, Math.random() * 100, Math.random() * 100],
-  //     } as ExecuteCommandPayload,
-  //     (err?: string, data?: any) => {
-  //       if (err) {
-  //         console.log("error", err);
-  //       } else {
-  //         console.log("sucess", data);
-  //       }
-  //     }
-  //   );
-  // }, 500);
-  // setInterval(() => {
-  //   socket.emit("getBulbs", (data: any) => console.log(data));
-  // }, 5000);
   socket.on("disconnect", async () => {
     const socketRoom = (socket as any).user?.room;
 
