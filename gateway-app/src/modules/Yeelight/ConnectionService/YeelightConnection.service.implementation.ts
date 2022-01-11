@@ -88,14 +88,17 @@ export class YeelightConnectionServiceImplementation
         const timeout = setTimeout(() => {
           rejects("timeout");
         }, 5000);
+
         client.on("connect", () => {
           clearTimeout(timeout);
           resolve(connection);
         });
+
         client.on("error", (err) => {
           clearTimeout(timeout);
           rejects(err);
         });
+
       } catch (err) {
         client.destroy();
         rejects(err);

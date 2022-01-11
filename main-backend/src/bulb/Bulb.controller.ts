@@ -110,7 +110,6 @@ export class BulbController {
         fetchedBulbs = await this.clientService.getBulbs(room.room);
       }
 
-
       await Promise.all(
         fetchedBulbs.map(async ({ power, ...bulb }) => {
           return this.db.bulb.upsert({
@@ -291,6 +290,17 @@ export class BulbController {
 
     if (!userToShareTo) {
       return res.sendStatus(404);
+    }
+
+    const previouslySharedBulb = await this.db.sharedBulbs.findFirst({
+      where: {
+        bulbId: ownedBulb.id,
+        userId: userToShareTo.userId,
+      },
+    });
+
+    if(previouslySharedBulb){
+      return res.sendStatus(400)
     }
 
     await this.db.sharedBulbs.create({
@@ -556,7 +566,7 @@ export class BulbController {
   ) {
     const loggedReq = req as LoggedRequest;
     const userId = loggedReq.user.userId;
-    const bulbId = req.params.id
+    const bulbId = req.params.id;
     try {
       const { count } = await this.db.bulb.deleteMany({
         where: {
@@ -564,12 +574,12 @@ export class BulbController {
           userId,
         },
       });
-      if(count){
+      if (count) {
         await this.db.sharedBulbs.deleteMany({
           where: {
             bulbId,
-          }
-        })
+          },
+        });
       }
       if (!count) {
         const { count: countOfShared } = await this.db.sharedBulbs.deleteMany({
