@@ -299,8 +299,8 @@ export class BulbController {
       },
     });
 
-    if(previouslySharedBulb){
-      return res.sendStatus(400)
+    if (previouslySharedBulb) {
+      return res.sendStatus(400);
     }
 
     await this.db.sharedBulbs.create({
@@ -329,6 +329,9 @@ export class BulbController {
         id: bulbId,
         userId,
       },
+      include: {
+        sharedWith: true,
+      },
     });
 
     if (!ownedBulb) {
@@ -341,6 +344,12 @@ export class BulbController {
 
     if (!userToUnshare) {
       return res.sendStatus(404);
+    }
+
+    if (
+      !ownedBulb.sharedWith.find((user) => user.userId === userToUnshare.userId)
+    ) {
+      return res.sendStatus(200);
     }
 
     await this.db.sharedBulbs.delete({

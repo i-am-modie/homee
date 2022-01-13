@@ -76,7 +76,7 @@ export const ShareBulbPage: FC = () => {
         value={usernameToShare}
         onChange={(e) => setUserNameToShare(e.target.value)}
       />
-      <Button onClick={shareBulb}>Set Name</Button>
+      <Button onClick={shareBulb}>Share Bulb</Button>
 
       <Typography.Title>This bulb is shared with</Typography.Title>
       {thisBulb?.sharedWith.map((user) => (
