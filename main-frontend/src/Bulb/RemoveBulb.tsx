@@ -2,6 +2,7 @@ import { message, Typography } from "antd";
 import { FC, useCallback, useMemo } from "react";
 import { useNavigate, useParams } from "react-router";
 import { Button } from "../components/atoms/Button";
+import { routePaths } from "../constants/routePaths";
 import { useApiService } from "../contexts/ApiServiceContext";
 import { useBulbsContext } from "../contexts/BulbsContext";
 
@@ -19,7 +20,7 @@ export const RemoveBulb: FC = () => {
     try {
       await apiService.deleteBulb(bulbId!);
       setBulbs(bulbs.filter((bulb) => bulb.id !== bulbId));
-      navigate(-1);
+      navigate(routePaths.home);
     } catch (err) {
       if (err instanceof Error) {
         console.log(err.message);

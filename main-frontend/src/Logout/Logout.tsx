@@ -10,7 +10,7 @@ export const Logout: FC = () => {
   useEffect(() => {
     setToken(undefined);
     navigate(routePaths.login);
-    message.error("Session expired! Login again!")
+    message.error("Logged out")
   });
 
   return null;
